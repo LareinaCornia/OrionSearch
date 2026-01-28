@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "author": {
     "name": "Jiayu Liu",
-    "email": "<jiayu_liu@brown.edu?>",
+    "email": "jiayu_liu@brown.edu",
     "cslogin": "jliu620"
   },
   "description": "A set of components for cs1380's search engine.",
