@@ -11,7 +11,9 @@
 # Tip: Make sure your program doesn't emit a non-zero exit code if there are no words left after removing stopwords.
 # You can combine the grep invocation with `|| true` to achieve this. Be careful though, as this will also hide other errors!
 
-tr -cs '[:alpha:]' '\n' \
-| tr '[:upper:]' '[:lower:]' \
-| iconv -c -t ascii//TRANSLIT \
-| grep -vwFf d/stopwords.txt || true
+# tr -cs '[:alpha:]' '\n' \
+# | tr '[:upper:]' '[:lower:]' \
+# | iconv -c -t ascii//TRANSLIT \
+# | grep -vwFf d/stopwords.txt || true
+
+exec node "$(dirname "$0")/process.js"
