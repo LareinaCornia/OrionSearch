@@ -18,13 +18,13 @@ let tokens = input
 tokens = tokens.map((t) => t.toLowerCase());
 
 tokens = tokens.map((t) =>
-    t.normalize('NFKD').replace(/[^\x00-\x7F]/g, ''),
+  t.normalize('NFKD').replace(/[^\x00-\x7F]/g, ''),
 );
 
 tokens = tokens.filter((t) =>
-    t.length > 0 && !stopwords.has(t),
+  t.length > 0 && !stopwords.has(t),
 );
 
 for (const t of tokens) {
-    console.log(t);
+  console.log(t);
 }

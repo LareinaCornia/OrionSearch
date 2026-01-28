@@ -27,3 +27,21 @@ for (const [term, count] of index.entries()) {
 
 out.sort();
 process.stdout.write(out.join('\n') + '\n');
+
+// ===== TF-IDF support: build document length statistics =====
+try {
+  const {spawnSync} = require('child_process');
+
+  const input = fs.readFileSync('d/local-index.txt', 'utf-8');
+
+  spawnSync(
+      'node',
+      ['c/build-doc-lengths.js'],
+      {
+        input,
+        stdio: ['pipe', 'inherit', 'inherit'],
+      },
+  );
+} catch (e) {
+  // silently ignore — doc-lengths.json is optional
+}
