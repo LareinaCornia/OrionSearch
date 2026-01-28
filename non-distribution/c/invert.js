@@ -6,12 +6,10 @@ const raw = fs.readFileSync(0, 'utf-8').trim();
 if (!raw) process.exit(0);
 
 const index = new Map();
-let docLength = 0;
 
 function add(term) {
   if (!term) return;
   index.set(term, (index.get(term) || 0) + 1);
-  docLength++;
 }
 
 for (const line of raw.split(/\r?\n/)) {

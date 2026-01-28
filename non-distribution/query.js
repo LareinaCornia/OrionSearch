@@ -27,7 +27,6 @@ For example, `execSync(`echo "${input}" | ./c/process.sh`, {encoding: 'utf-8'});
 
 const fs = require('fs');
 const {execSync} = require('child_process');
-const path = require('path');
 
 
 function query(indexFile, args) {
@@ -37,62 +36,14 @@ function query(indexFile, args) {
       `echo "${input}" | ./c/process.sh | ./c/stem.js | tr "\\r\\n" " "`,
       {encoding: 'utf-8'},
   ).trim();
-
   if (!processed) return;
 
-  const indexPath = path.resolve(indexFile);
-  const lines = fs.readFileSync(indexPath, 'utf-8').split('\n');
-
-  let docLengths = null;
-  try {
-    const docLengthsPath = path.join('d', 'doc-lengths.json');
-    docLengths = JSON.parse(
-        fs.readFileSync(docLengthsPath, 'utf-8'),
-    );
-  } catch (_) {
-    docLengths = null;
-  }
-
-  // basic
-  if (!docLengths) {
-    lines.forEach((line) => {
-      if (line.includes(processed)) {
-        console.log(line);
-      }
-    });
-    return;
-  }
-
-  // TF-IDF
-  const postings = [];
-  const df = new Set();
-  const N = Object.keys(docLengths).length;
-
-  for (const line of lines) {
-    if (!line.startsWith(processed + ' ')) continue;
-
-    const parts = line.split(' ');
-    for (let i = 1; i < parts.length; i += 2) {
-      df.add(parts[i]);
-      postings.push({
-        url: parts[i],
-        tf: Number(parts[i + 1]) / docLengths[parts[i]],
-      });
+  const lines = fs.readFileSync(indexFile, 'utf-8').split('\n');
+  lines.forEach((line) => {
+    if (line.includes(processed)) {
+      console.log(line);
     }
-  }
-
-  const idf = Math.log(N / df.size);
-
-  const scores = {};
-  for (const p of postings) {
-    scores[p.url] = (scores[p.url] || 0) + p.tf * idf;
-  }
-
-  Object.entries(scores)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([url, score]) => {
-        console.log(`${url} ${score.toFixed(4)}`);
-      });
+  });
 }
 
 const args = process.argv.slice(2); // Get command-line arguments
