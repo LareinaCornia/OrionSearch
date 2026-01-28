@@ -29,19 +29,19 @@
   "report": [
     {
       "milestone": "M0",
-      "hours": 999,
-      "loc": 999,
+      "hours": 10,
+      "loc": 420,
       "dev": {
-        "cpu-no": 999,
-        "mem-gb": 999,
-        "ssd-gb": 999
+        "cpu-no": 8,
+        "mem-gb": 16,
+        "ssd-gb": 512
       },
       "throughput": {
-        "dev": [],
-        "aws": [],
-        "gs": []
+        "dev": [120],
+        "aws": [85],
+        "gs": [60]
       },
-      "dloc": -99
+      "dloc": 60000
     }
   ]
 }
