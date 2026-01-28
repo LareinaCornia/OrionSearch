@@ -29,15 +29,3 @@ for (const [term, count] of index.entries()) {
 
 out.sort();
 process.stdout.write(out.join('\n') + '\n');
-
-// Recording doc length for TF-IDF
-try {
-  const path = 'd/doc-lengths.json';
-  let docLengths = {};
-  if (fs.existsSync(path)) {
-    docLengths = JSON.parse(fs.readFileSync(path, 'utf-8'));
-  }
-  docLengths[url] = docLength;
-  fs.writeFileSync(path, JSON.stringify(docLengths, null, 2));
-} catch (_) {
-}
