@@ -6,10 +6,12 @@ const raw = fs.readFileSync(0, 'utf-8').trim();
 if (!raw) process.exit(0);
 
 const index = new Map();
+let docLength = 0;
 
 function add(term) {
   if (!term) return;
   index.set(term, (index.get(term) || 0) + 1);
+  docLength++;
 }
 
 for (const line of raw.split(/\r?\n/)) {
@@ -28,20 +30,14 @@ for (const [term, count] of index.entries()) {
 out.sort();
 process.stdout.write(out.join('\n') + '\n');
 
-// ===== TF-IDF support: build document length statistics =====
+// Recording doc length for TF-IDF
 try {
-  const {spawnSync} = require('child_process');
-
-  const input = fs.readFileSync('d/local-index.txt', 'utf-8');
-
-  spawnSync(
-      'node',
-      ['c/build-doc-lengths.js'],
-      {
-        input,
-        stdio: ['pipe', 'inherit', 'inherit'],
-      },
-  );
-} catch (e) {
-  // silently ignore — doc-lengths.json is optional
+  const path = 'd/doc-lengths.json';
+  let docLengths = {};
+  if (fs.existsSync(path)) {
+    docLengths = JSON.parse(fs.readFileSync(path, 'utf-8'));
+  }
+  docLengths[url] = docLength;
+  fs.writeFileSync(path, JSON.stringify(docLengths, null, 2));
+} catch (_) {
 }
