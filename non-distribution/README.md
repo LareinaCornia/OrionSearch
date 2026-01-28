@@ -1,44 +1,19 @@
-# non-distribution
+# M0: Setup & Centralized Computing
 
-This milestone aims (among others) to refresh (and confirm) everyone's
-background on developing systems in the languages and libraries used in this
-course.
+* name: `Jiayu Liu`
+* email: `jiayu_liu@brown.edu`
+* cslogin: `jliu620`
 
-By the end of this assignment you will be familiar with the basics of
-JavaScript, shell scripting, stream processing, Docker containers, deployment
-to AWS, and performance characterization—all of which will be useful for the
-rest of the project.
+## Summary
 
-Your task is to implement a simple search engine that crawls a set of web
-pages, indexes them, and allows users to query the index. All the components
-will run on a single machine.
+My implementation consists of multiple components addressing T1–T8, including centralized crawling and indexing, query processing, automated testing, and EC2 deployment. The most challenging aspect was debugging the testing logic because it required carefully interpreting the inverted index format and correctly handling n-gram terms and posting lists.
 
-## Getting Started
+## Correctness & Performance Characterization
 
-To get started with this milestone, run `npm install` inside this folder. To
-execute the (initially unimplemented) crawler run `./engine.sh`. Use
-`./query.js` to query the produced index. To run tests, do `npm run test`.
-Initially, these will fail.
+To characterize correctness, we developed automated unit and integration tests, including the provided synthetic TF-IDF tests, which validate correct indexing, TF-IDF scoring, and document ranking for representative queries.
 
-### Overview
+*Performance*: The throughput of various subsystems is described in the `"throughput"` portion of package.json. The characteristics of my development machines are summarized in the `"dev"` portion of package.json.
 
-The code inside `non-distribution` is organized as follows:
+## Wild Guess
 
-```
-.
-├── c            # The components of your search engine
-├── d            # Data files like seed urls and the produced index
-├── s            # Utility scripts for linting your solutions
-├── t            # Tests for your search engine
-├── README.md    # This file
-├── crawl.sh     # The crawler
-├── index.sh     # The indexer
-├── engine.sh    # The orchestrator script that runs the crawler and the indexer
-├── package.json # The npm package file that holds information like JavaScript dependencies
-└── query.js     # The script you can use to query the produced global index
-```
-
-### Submitting
-
-To submit your solution, run `./scripts/submit.sh` from the root of the stencil. This will create a
-`submission.zip` file which you can upload to the autograder.
+I think it will take 60000 lines of code to build the fully distributed, scalable version of your search engine.
