@@ -8,7 +8,7 @@
     "test": "test"
   },
   "devDependencies": {
-    "eslint": "^8.55.0",
+    "eslint": "^9.39.2",
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-n": "^16.6.2",
     "javascript-obfuscator": "^4.1.0",
@@ -22,28 +22,54 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "yargs": "^17.7.2",
-    "@brown-ds/distribution": "latest"
+    "@brown-ds/distribution": "^0.2.31",
+    "yargs": "^17.7.2"
   },
   "report": [
     {
       "milestone": "M1",
-      "hours": 999,
-      "loc": 999,
+      "hours": 10,
+      "loc": 300,
       "dev": {
-        "cpu-no": 999,
-        "mem-gb": 999,
-        "ssd-gb": 999
+        "cpu-no": 8,
+        "mem-gb": 8,
+        "ssd-gb": 58
       },
       "throughput": {
-        "dev": [],
+        "dev": [
+          {
+            "serialize": {
+              "small": 651528,
+              "medium": 12539,
+              "large": 674
+            },
+            "deserialize": {
+              "small": 1362870,
+              "medium": 32290,
+              "large": 1086
+            }
+          }
+        ],
         "aws": []
       },
       "latency": {
-        "dev": [],
+        "dev": [
+          {
+            "serialize": {
+              "small": 0.0040812009999993395,
+              "medium": 0.0842458659999977,
+              "large": 3.5259583229999927
+            },
+            "deserialize": {
+              "small": 0.002715630999999803,
+              "medium": 0.03599038600000012,
+              "large": 1.5713094220000012
+            }
+          }
+        ],
         "aws": []
       },
-      "dloc": -99
+      "dloc": 50000
     },
     {
       "milestone": "M2",
