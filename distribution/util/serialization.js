@@ -2,16 +2,17 @@
 
 const fs = require('node:fs');
 const os = require('node:os');
+const repl = require('node:repl');
 
 // native registry
 const nativeRegistry = new Map();
 
 // 5 hardcoded natives
-// nativeRegistry.set(console.log, { root: 'global', path: ['console', 'log'] });
-// nativeRegistry.set(fs.readFile,  { root: 'fs', path: ['readFile'] });
-// nativeRegistry.set(os.type,      { root: 'os', path: ['type'] });
-// nativeRegistry.set(setTimeout,   { root: 'global', path: ['setTimeout'] });
-// nativeRegistry.set(process.cwd,  { root: 'global', path: ['process', 'cwd'] });
+nativeRegistry.set(console.log, { root: 'global', path: ['console', 'log'] });
+nativeRegistry.set(fs.readFile,  { root: 'fs', path: ['readFile'] });
+nativeRegistry.set(os.type,      { root: 'os', path: ['type'] });
+nativeRegistry.set(setTimeout,   { root: 'global', path: ['setTimeout'] });
+nativeRegistry.set(process.cwd,  { root: 'global', path: ['process', 'cwd'] });
 
 function register(root, base, path = []) {
   if (typeof base === 'function' &&
@@ -33,6 +34,27 @@ for (const k of Object.keys(fs)) {
   try {
     register('fs', fs[k], [k]);
   } catch {}
+}
+
+/** @type {string[]} */
+const builtinLibs = repl._builtinLibs || [];
+
+for (const mod of builtinLibs) {
+  if (mod.startsWith('_')) 
+    continue;
+
+  let exports;
+  try {
+    exports = require(mod);
+  } catch {
+    continue;
+  }
+
+  for (const key of Object.keys(exports)) {
+    try {
+      register(mod, exports[key], [key]);
+    } catch {}
+  }
 }
 
 // reverse native lookup
