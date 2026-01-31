@@ -24,9 +24,19 @@ function serialize(object) {
     type === 'string' ||
     type === 'boolean'
   ) {
+    let value = object;
+    
+    // special numbers
+    if (Number.isNaN(object))
+      value = 'NaN';
+    else if (object === Infinity)
+      value = 'Infinity';
+    else if (object === -Infinity)
+      value = '-Infinity';
+
     return JSON.stringify({
       type: type,
-      value: object
+      value: value
     });
   }
 
