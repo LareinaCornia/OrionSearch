@@ -4,13 +4,36 @@ const fs = require('node:fs');
 const os = require('node:os');
 
 // native registry
-const nativeRegistry = new Map([
-  ['console.log', console.log],
-  ['fs.readFile', fs.readFile],
-  ['os.type', os.type],
-  ['setTimeout', setTimeout],
-  ['process.cwd', process.cwd],
-]);
+const nativeRegistry = new Map();
+
+// 5 hardcoded natives
+nativeRegistry.set(console.log, { root: 'global', path: ['console', 'log'] });
+nativeRegistry.set(fs.readFile,  { root: 'fs', path: ['readFile'] });
+nativeRegistry.set(os.type,      { root: 'os', path: ['type'] });
+nativeRegistry.set(setTimeout,   { root: 'global', path: ['setTimeout'] });
+nativeRegistry.set(process.cwd,  { root: 'global', path: ['process', 'cwd'] });
+
+function register(root, base, path = []) {
+  if (typeof base === 'function' &&
+      base.toString().includes('[native code]') &&
+      !nativeRegistry.has(base)) {
+    nativeRegistry.set(base, { root, path });
+  }
+}
+
+// native global
+for (const k of Object.keys(globalThis)) {
+  try {
+    register('global', globalThis[k], [k]);
+  } catch {}
+}
+
+// native fs
+for (const k of Object.keys(fs)) {
+  try {
+    register('fs', fs[k], [k]);
+  } catch {}
+}
 
 // reverse native lookup
 const nativeReverseRegistry = new WeakMap();
