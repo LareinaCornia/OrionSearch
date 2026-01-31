@@ -1,5 +1,23 @@
 // @ts-check
 
+const fs = require('node:fs');
+const os = require('node:os');
+
+// native registry
+const nativeRegistry = new Map([
+  ['console.log', console.log],
+  ['fs.readFile', fs.readFile],
+  ['os.type', os.type],
+  ['setTimeout', setTimeout],
+  ['process.cwd', process.cwd],
+]);
+
+// reverse native lookup
+const nativeReverseRegistry = new WeakMap();
+for (const [id, fn] of nativeRegistry.entries()) {
+  nativeReverseRegistry.set(fn, id);
+}
+
 // cycle helpers
 let nextId = 1;
 const seenSerialize = new WeakMap();
@@ -66,6 +84,17 @@ function serialize(object) {
         id: seenSerialize.get(object) });
     }
   seenSerialize.set(object, nextId++);
+
+  // native object check
+  if (
+    (type === 'function' || type === 'object') &&
+    nativeReverseRegistry.has(object)
+  ) {
+    return JSON.stringify({
+      type: 'native',
+      value: nativeReverseRegistry.get(object)
+    });
+  }
 
   // function
   if (type === 'function') {
@@ -141,6 +170,14 @@ function deserialize(input) {
       const err = new Error(json.value.message);
       err.name = json.value.name;
       return err;
+    }
+
+    case 'native': {
+      const nativeObj = nativeRegistry.get(json.value);
+      if (!nativeObj) {
+        throw new Error(`Unknown native reference: ${json.value}`);
+      }
+      return nativeObj;
     }
 
     case 'function': {
