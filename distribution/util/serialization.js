@@ -1,5 +1,10 @@
 // @ts-check
 
+// cycle helpers
+let nextId = 1;
+const seenSerialize = new WeakMap();
+const seenDeserialize = new Map();
+
 /**
  * @param {any} object
  * @returns {string}
@@ -20,20 +25,12 @@ function serialize(object) {
     type === 'boolean'
   ) {
     return JSON.stringify({
-      type: type,          // ✅ 必须是小写
+      type: type,
       value: object
     });
   }
 
-  // function
-  if (type === 'function') {
-    return JSON.stringify({
-      type: 'function',
-      value: object.toString()
-    });
-  }
-
-  // Date
+  // date
   if (object instanceof Date) {
     return JSON.stringify({
       type: 'date',
@@ -41,7 +38,7 @@ function serialize(object) {
     });
   }
 
-  // Error
+  // error
   if (object instanceof Error) {
     return JSON.stringify({
       type: 'error',
@@ -52,15 +49,33 @@ function serialize(object) {
     });
   }
 
-  // Array
+  // cycles detection
+  if (seenSerialize.has(object)) {
+      return JSON.stringify({ 
+        type: 'reference', 
+        id: seenSerialize.get(object) });
+    }
+  seenSerialize.set(object, nextId++);
+
+  // function
+  if (type === 'function') {
+    return JSON.stringify({
+      type: 'function',
+      id: seenSerialize.get(object),
+      value: object.toString()
+    });
+  }
+
+  // array
   if (Array.isArray(object)) {
     return JSON.stringify({
       type: 'array',
+      id: seenSerialize.get(object),
       value: object.map(el => serialize(el))
     });
   }
 
-  // Object (recursive)
+  // object
   if (type === 'object') {
     const json = {};
     for (const key of Object.keys(object)) {
@@ -68,6 +83,7 @@ function serialize(object) {
     }
     return JSON.stringify({
       type: 'object',
+      id: seenSerialize.get(object),
       value: json
     });
   }
@@ -80,7 +96,6 @@ function serialize(object) {
  * @returns {any}
  */
 function deserialize(input) {
-  // 🔴 官方 scenario 要求：malformed（包括非 string）→ SyntaxError
   if (typeof input !== 'string') {
     throw new SyntaxError('Malformed serialized string');
   }
@@ -92,25 +107,22 @@ function deserialize(input) {
     throw new SyntaxError('Malformed serialized string');
   }
 
+  if (json.type === 'reference') {
+    return seenDeserialize.get(json.id);
+  }
+
   switch (json.type) {
+    // basic types
     case 'null':
       return null;
-
     case 'undefined':
       return undefined;
-
     case 'number':
       return Number(json.value);
-
     case 'string':
       return json.value;
-
     case 'boolean':
       return Boolean(json.value);
-
-    case 'function':
-      // M1 允许不安全实现
-      return new Function(`return ${json.value}`)();
 
     case 'date':
       return new Date(json.value);
@@ -121,11 +133,24 @@ function deserialize(input) {
       return err;
     }
 
-    case 'array':
-      return json.value.map(v => deserialize(v));
+    case 'function': {
+      const fn = new Function(`return ${json.value}`)();
+      seenDeserialize.set(json.id, fn);
+      return fn;
+    }
+
+    case 'array': {
+      const arr = [];
+      seenDeserialize.set(json.id, arr); 
+      for (const v of json.value) {
+        arr.push(deserialize(v));
+      }
+      return arr;
+    }
 
     case 'object': {
       const obj = {};
+      seenDeserialize.set(json.id, obj);
       for (const key of Object.keys(json.value)) {
         obj[key] = deserialize(json.value[key]);
       }
