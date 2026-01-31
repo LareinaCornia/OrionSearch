@@ -225,6 +225,8 @@ function deserialize(input) {
       return json.value;
     case 'boolean':
       return Boolean(json.value);
+    case 'bigint':
+      return BigInt(json.value);
 
     case 'date':
       return new Date(json.value);
