@@ -98,7 +98,8 @@ function serialize(object) {
     type === 'undefined' ||
     type === 'number' ||
     type === 'string' ||
-    type === 'boolean'
+    type === 'boolean' ||
+    type === 'bigint' 
   ) {
     let value = object;
 
@@ -109,6 +110,9 @@ function serialize(object) {
       value = 'Infinity';
     else if (object === -Infinity)
       value = '-Infinity';
+
+    if (type === 'bigint')
+      value = object.toString();
 
     return JSON.stringify({
       type: type,
