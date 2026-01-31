@@ -7,11 +7,11 @@ const os = require('node:os');
 const nativeRegistry = new Map();
 
 // 5 hardcoded natives
-nativeRegistry.set(console.log, { root: 'global', path: ['console', 'log'] });
-nativeRegistry.set(fs.readFile,  { root: 'fs', path: ['readFile'] });
-nativeRegistry.set(os.type,      { root: 'os', path: ['type'] });
-nativeRegistry.set(setTimeout,   { root: 'global', path: ['setTimeout'] });
-nativeRegistry.set(process.cwd,  { root: 'global', path: ['process', 'cwd'] });
+// nativeRegistry.set(console.log, { root: 'global', path: ['console', 'log'] });
+// nativeRegistry.set(fs.readFile,  { root: 'fs', path: ['readFile'] });
+// nativeRegistry.set(os.type,      { root: 'os', path: ['type'] });
+// nativeRegistry.set(setTimeout,   { root: 'global', path: ['setTimeout'] });
+// nativeRegistry.set(process.cwd,  { root: 'global', path: ['process', 'cwd'] });
 
 function register(root, base, path = []) {
   if (typeof base === 'function' &&
@@ -37,8 +37,21 @@ for (const k of Object.keys(fs)) {
 
 // reverse native lookup
 const nativeReverseRegistry = new WeakMap();
-for (const [id, fn] of nativeRegistry.entries()) {
-  nativeReverseRegistry.set(fn, id);
+for (const [fn, desc] of nativeRegistry.entries()) {
+  nativeReverseRegistry.set(fn, desc);
+}
+
+function resolveNative(desc) {
+  let base =
+    desc.root === 'global' ? globalThis :
+    desc.root === 'fs'     ? require('fs') :
+    desc.root === 'os'     ? require('os') :
+    require(desc.root);
+
+  for (const p of desc.path) {
+    base = base[p];
+  }
+  return base;
 }
 
 // cycle helpers
@@ -66,7 +79,7 @@ function serialize(object) {
     type === 'boolean'
   ) {
     let value = object;
-    
+
     // special numbers
     if (Number.isNaN(object))
       value = 'NaN';
@@ -100,15 +113,7 @@ function serialize(object) {
     });
   }
 
-  // cycles detection
-  if (seenSerialize.has(object)) {
-      return JSON.stringify({ 
-        type: 'reference', 
-        id: seenSerialize.get(object) });
-    }
-  seenSerialize.set(object, nextId++);
-
-  // native object check
+  // native check
   if (
     (type === 'function' || type === 'object') &&
     nativeReverseRegistry.has(object)
@@ -118,6 +123,15 @@ function serialize(object) {
       value: nativeReverseRegistry.get(object)
     });
   }
+
+  // cycles detection
+  if (seenSerialize.has(object)) {
+    return JSON.stringify({ 
+      type: 'reference', 
+      id: seenSerialize.get(object)
+    });
+  }
+  seenSerialize.set(object, nextId++);
 
   // function
   if (type === 'function') {
@@ -195,13 +209,8 @@ function deserialize(input) {
       return err;
     }
 
-    case 'native': {
-      const nativeObj = nativeRegistry.get(json.value);
-      if (!nativeObj) {
-        throw new Error(`Unknown native reference: ${json.value}`);
-      }
-      return nativeObj;
-    }
+    case 'native':
+      return resolveNative(json.value);
 
     case 'function': {
       const fn = new Function(`return ${json.value}`)();
