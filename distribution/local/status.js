@@ -26,7 +26,7 @@ function get(configuration, callback) {
     return callback(null, counts);
 
     if (!node)
-      return callback(Error('Node not initialized'));
+      return callback(Error('Node not initialized'), null);
 
   switch (configuration) {
     case "nid":
@@ -38,8 +38,7 @@ function get(configuration, callback) {
     case "port":
       return callback(null, node.port);
     default:
-      return callback(new Error("Property does not exist"));
-  }
+      return callback(new Error('Property does not exist'), null);
 };
 
 
