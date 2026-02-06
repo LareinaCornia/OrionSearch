@@ -14,8 +14,14 @@ function get(configuration, callback) {
   counts++;
 
   const distribution = globalThis.distribution;
+  if (!distribution) 
+    return callback(new Error('Distribution missing'), null);
+
   const node = distribution?.node?.config;
   const id = distribution.util.id;
+
+  if (!node || !id)
+    return callback(new Error('Node or ID utility not initialized'), null);
 
   if (configuration === "heapUsed" || configuration === "heapTotal") {
     const mem = process.memoryUsage();
@@ -25,14 +31,15 @@ function get(configuration, callback) {
   if (configuration === "counts")
     return callback(null, counts);
 
-    if (!node)
-      return callback(Error('Node not initialized'), null);
-
   switch (configuration) {
     case "nid":
-      return callback(null, id.getNID(node));
+      const nid = id.getNID(node);
+      return callback(null, nid ?? null);
+      // return callback(null, id.getNID(node));
     case "sid":
-      return callback(null, id.getSID(node));
+      const sid = id.getSID(node);
+      return callback(null, sid ?? null);
+      // return callback(null, id.getSID(node));
     case "ip":
       return callback(null, node.ip);
     case "port":
