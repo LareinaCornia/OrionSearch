@@ -25,11 +25,13 @@ function get(configuration, callback) {
 
   switch (configuration) {
     case "nid":
+      return callback(null, node["nid"]);
     case "sid":
+      return callback(null, node["sid"]);
     case "ip":
+      return callback(null, node.ip);
     case "port":
-      if (node[configuration] !== undefined) 
-        return callback(null, node[configuration]);
+      return callback(null, node.port);
     default:
       return callback(new Error("Property does not exist"));
   }
