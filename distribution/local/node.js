@@ -92,8 +92,6 @@ function start(callback) {
       The path of the http request will determine the service to be used.
       The url will have the form: http://node_ip:node_port/service/method
     */
-  
-    const {serialize, deserialize} = globalThis.distribution.util.serialization;
 
     const parsedUrl = url.parse(req.url || '', true);
     const parts = (parsedUrl.pathname || '')
@@ -102,7 +100,7 @@ function start(callback) {
 
     if (parts.length < 3) {
       res.writeHead(400);
-      res.end(serialize([new Error('Invalid path'), null]));
+      res.end(globalThis.distribution.util.serialize(new Error('Invalid path')));
       return;
     }
 
@@ -147,12 +145,12 @@ function start(callback) {
         const raw = Buffer.concat(body).toString();
 
         if (raw.length > 0) {
-          args = deserialize(raw);
+          args = globalThis.distribution.util.deserialize(raw);
         }
 
       } catch (error) {
         res.writeHead(400);
-        res.end(serialize([new Error('Invalid Serialization'), null]));
+        res.end(globalThis.distribution.util.serialize(new Error('Invalid Serialization')));
         return;
       }
 
@@ -161,14 +159,15 @@ function start(callback) {
         (err, service) => {
           if (err || !service || typeof service[method] !== 'function') {
             res.writeHead(404);
-            res.end(serialize([new Error('Service or method not found'), null]));
+            res.end(globalThis.distribution.util.serialize(new Error('Service or method not found')));
             return;
           }
 
           try {
             service[method](args, (e, value) => {
 
-              const payload = serialize([e, value]);
+              const payload = e ? globalThis.distribution.util.serialize(e) :
+                                  globalThis.distribution.util.serialize(value);
 
               res.writeHead(200, {
                 'Content-Type': 'application/json',
@@ -179,7 +178,7 @@ function start(callback) {
 
           } catch (error) {
             res.writeHead(500);
-            res.end(serialize([error, null]));
+            res.end(globalThis.distribution.util.serialize(error));
           }
         }
       );
