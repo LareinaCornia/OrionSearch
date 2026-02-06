@@ -12,10 +12,12 @@ const table = Object.create(null);
  */
 function get(configuration, callback) {
   try {
+    const config = Array.isArray(configuration) ? configuration[0] : configuration;
+
     const name =
-      typeof configuration === "string"
-        ? configuration
-        : configuration?.service;
+      typeof config === "string"
+        ? config
+        : config?.service;
 
     if (!name || !(name in table)) {
       return callback(new Error("Service does not exist"), null);
@@ -36,18 +38,19 @@ function get(configuration, callback) {
  */
 function put(service, configuration, callback) {
   try {
-    if (!configuration || typeof configuration !== "string") {
+    const s = Array.isArray(service) ? service[0] : service;
+    const name = Array.isArray(configuration) ? configuration[0] : configuration;
+
+    if (!name || typeof name !== "string") {
       return callback(new Error("Invalid service name"), null);
     }
 
-    if (typeof service !== "object") {
+    if (typeof s !== "object" && typeof s !== "function") {
       return callback(new Error("Invalid service object"), null);
     }
 
-    table[configuration] = service;
-
-    return callback(null, configuration);
-
+    table[name] = s;
+    return callback(null, name);
   } catch (err) {
     return callback(err, null);
   }
@@ -59,17 +62,25 @@ function put(service, configuration, callback) {
  */
 function rem(configuration, callback) {
   try {
-    if (!(configuration in table)) {
+    const name = Array.isArray(configuration) ? configuration[0] : configuration;
+
+    if (!(name in table)) {
       return callback(new Error("Service does not exist"), null);
     }
 
-    delete table[configuration];
-
+    delete table[name];
     return callback(null, null);
-
   } catch (err) {
     return callback(err, null);
   }
 }
+
+const routesService = {
+  get: get,
+  put: put,
+  rem: rem,
+};
+
+table['routes'] = routesService;
 
 module.exports = {get, put, rem};
