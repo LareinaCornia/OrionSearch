@@ -18,13 +18,13 @@ function get(configuration, callback) {
         : configuration?.service;
 
     if (!name || !(name in table)) {
-      return callback(new Error("Service does not exist"));
+      return callback(new Error("Service does not exist"), null);
     }
 
     return callback(null, table[name]);
 
   } catch (err) {
-    return callback(err);
+    return callback(err, null);
   }
 }
 
@@ -37,11 +37,11 @@ function get(configuration, callback) {
 function put(service, configuration, callback) {
   try {
     if (!configuration || typeof configuration !== "string") {
-      return callback(new Error("Invalid service name"));
+      return callback(new Error("Invalid service name"), null);
     }
 
     if (typeof service !== "object") {
-      return callback(new Error("Invalid service object"));
+      return callback(new Error("Invalid service object"), null);
     }
 
     table[configuration] = service;
@@ -49,7 +49,7 @@ function put(service, configuration, callback) {
     return callback(null, configuration);
 
   } catch (err) {
-    return callback(err);
+    return callback(err, null);
   }
 }
 
@@ -60,15 +60,15 @@ function put(service, configuration, callback) {
 function rem(configuration, callback) {
   try {
     if (!(configuration in table)) {
-      return callback(new Error("Service does not exist"));
+      return callback(new Error("Service does not exist"), null);
     }
 
     delete table[configuration];
 
-    return callback(null);
+    return callback(null, null);
 
   } catch (err) {
-    return callback(err);
+    return callback(err, null);
   }
 }
 

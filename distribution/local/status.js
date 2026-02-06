@@ -56,7 +56,7 @@ function spawn(configuration, callback) {
 
   distribution.node.config = configuration;
 
-  callback(null);
+  callback(null, null);
 }
 
 /**
@@ -69,7 +69,7 @@ function stop(callback) {
     distribution.node.config = null;
   }
 
-  callback(null);
+  callback(null, null);
 }
 
 module.exports = {get, spawn, stop};

@@ -23,29 +23,29 @@ const http = require('node:http');
 function send(message, remote, callback) {
   try {
     if (!Array.isArray(message)) {
-      return callback(new Error('Invalid message'));
+      return callback(new Error('Invalid message'), null);
     }
 
     if (!remote || typeof remote !== 'object') {
-      return callback(new Error('Invalid remote'));
+      return callback(new Error('Invalid remote'), null);
     }
 
     const { node, service, method } = remote;
 
     if (!node || typeof node !== 'object') {
-      return callback(new Error('Invalid remote node'));
+      return callback(new Error('Invalid remote node'), null);
     }
 
     if (!node.ip || !node.port) {
-      return callback(new Error('Invalid remote node'));
+      return callback(new Error('Invalid remote node'), null);
     }
 
     if (!service || typeof service !== 'string') {
-      return callback(new Error('Invalid service'));
+      return callback(new Error('Invalid service'), null);
     }
 
     if (!method || typeof method !== 'string') {
-      return callback(new Error('Invalid method'));
+      return callback(new Error('Invalid method'), null);
     }
 
     const gid = remote.gid || 'local';
@@ -76,7 +76,7 @@ function send(message, remote, callback) {
           const decoded = globalThis.distribution.util.deserialize(data);
 
           if (!Array.isArray(decoded) || decoded.length !== 2) {
-            return callback(new Error('Invalid response'));
+            return callback(new Error('Invalid response'), null);
           }
 
           const [err, value] = decoded;
@@ -84,20 +84,20 @@ function send(message, remote, callback) {
           return callback(err || null, value ?? null);
 
         } catch (e) {
-          return callback(e);
+          return callback(e, null);
         }
       });
     });
 
     req.on('error', (err) => {
-      callback(err);
+      callback(err, null);
     });
 
     req.write(payload);
     req.end();
 
   } catch (err) {
-    callback(err);
+    callback(err, null);
   }
 }
 
