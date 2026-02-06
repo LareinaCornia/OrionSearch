@@ -12,39 +12,33 @@ let node = null;
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  if (configuration === "heapUsed") {
+  counts++;
+
+  if (configuration === "heapUsed" || configuration === "heapTotal") {
     const mem = process.memoryUsage();
-    return callback(null, mem.heapUsed);
+    return callback(null, mem[configuration]);
   }
 
+  if (configuration === "counts") {
+    return callback(null, counts);
+  }
 
   if (!node) {
     return callback(new Error("Node not initialized"));
   }
 
-  counts++;
+  switch (configuration) {
+    case "nid":
+    case "sid":
+    case "ip":
+    case "port":
+      if (node[configuration] !== undefined) {
+        return callback(null, node[configuration]);
+      }
+      return callback(new Error("Property not found"));
 
-  try {
-    switch (configuration) {
-
-      case "nid":
-      case "sid":
-      case "ip":
-      case "port":
-        if (node[configuration] !== undefined) {
-          return callback(null, node[configuration]);
-        }
-        return callback(new Error("Property not found"));
-
-      case "counts":
-        return callback(null, counts);
-
-      default:
-        return callback(new Error("Accessible property does not exist"));
-    }
-
-  } catch (err) {
-    return callback(err);
+    default:
+      return callback(new Error("Accessible property does not exist"));
   }
 };
 
