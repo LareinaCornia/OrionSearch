@@ -39,6 +39,7 @@ function get(configuration, callback) {
       return callback(null, node.port);
     default:
       return callback(new Error('Property does not exist'), null);
+  }
 };
 
 
@@ -50,7 +51,7 @@ function spawn(configuration, callback) {
   const distribution = globalThis.distribution;
 
   if (!distribution || !distribution.node) {
-    return callback(new Error("Distribution not initialized"));
+    return callback(new Error("Distribution not initialized"), null);
   }
 
   distribution.node.config = configuration;
