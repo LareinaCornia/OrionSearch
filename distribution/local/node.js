@@ -9,6 +9,8 @@ const log = require('../util/log.js');
 
 const yargs = require('yargs/yargs');
 
+const util = globalThis.distribution.util;
+
 /**
  * @returns {Node}
  */
@@ -100,7 +102,7 @@ function start(callback) {
 
     if (parts.length < 3) {
       res.writeHead(400);
-      res.end(globalThis.distribution.util.serialize(new Error('Invalid path')));
+      res.end(util.serialize([new Error('Invalid path'), null]));
       return;
     }
 
@@ -145,12 +147,12 @@ function start(callback) {
         const raw = Buffer.concat(body).toString();
 
         if (raw.length > 0) {
-          args = globalThis.distribution.util.deserialize(raw);
+          args = util.deserialize(raw);
         }
 
       } catch (error) {
         res.writeHead(400);
-        res.end(globalThis.distribution.util.serialize(new Error('Invalid Serialization')));
+        res.end(util.serialize([new Error('Invalid Serialization'), null]));
         return;
       }
 
@@ -159,15 +161,14 @@ function start(callback) {
         (err, service) => {
           if (err || !service || typeof service[method] !== 'function') {
             res.writeHead(404);
-            res.end(globalThis.distribution.util.serialize(new Error('Service or method not found')));
+            res.end(util.serialize([new Error('Service or method not found'), null]));
             return;
           }
 
           try {
             service[method](args, (e, value) => {
 
-              const payload = e ? globalThis.distribution.util.serialize(e) :
-                                  globalThis.distribution.util.serialize(value);
+              const payload = util.serialize([e, value]);
 
               res.writeHead(200, {
                 'Content-Type': 'application/json',
@@ -178,7 +179,7 @@ function start(callback) {
 
           } catch (error) {
             res.writeHead(500);
-            res.end(globalThis.distribution.util.serialize(error));
+            res.end(util.serialize([error, null]));
           }
         }
       );
