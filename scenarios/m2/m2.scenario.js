@@ -14,7 +14,10 @@ test('(2 pts) (scenario) simple callback practice', () => {
     results.push(result);
   }
 
-  // ...
+  // Call add three times
+  add(1, 2, storeResults);
+  add(2, 3, storeResults);
+  add(3, 4, storeResults);
 
   expect(results).toEqual([3, 5, 7]);
 });
@@ -27,23 +30,23 @@ test('(2 pts) (scenario) collect errors and successful results', (done) => {
 
   // Sample service
   const appleDeliveryService = (callback) => {
-    // ...
+    callback(null, 'good apples');
   };
 
   const pineappleDeliveryService = (callback) => {
-    // ...
+    callback(new Error('bad pineapples'));
   };
 
   const bananaDeliveryService = (callback) => {
-    // ...
+    callback(null, 'good bananas');
   };
 
   const peachDeliveryService = (callback) => {
-    // ...
+    callback(null, 'good peaches');
   };
 
   const mangoDeliveryService = (callback) => {
-    // ...
+    callback(new Error('bad mangoes'));
   };
 
   const services = [
@@ -96,7 +99,14 @@ test('(5 pts) (scenario) use rpc', (done) => {
 
   const node = {ip: '127.0.0.1', port: 9009};
 
-  let addOneRPC = '?';
+  let addOneRPC = (args, callback) => {
+    try {
+      const result = addOne();
+      callback(null, result);
+    } catch (e) {
+      callback(e);
+    }
+  };
 
   const rpcService = {
     addOne: addOneRPC,
