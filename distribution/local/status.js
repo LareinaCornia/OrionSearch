@@ -12,6 +12,12 @@ let node = null;
  * @param {Callback} callback
  */
 function get(configuration, callback) {
+  if (configuration === "heapUsed") {
+    const mem = process.memoryUsage();
+    return callback(null, mem.heapUsed);
+  }
+
+
   if (!node) {
     return callback(new Error("Node not initialized"));
   }
@@ -32,11 +38,6 @@ function get(configuration, callback) {
 
       case "counts":
         return callback(null, counts);
-
-      case "heapUsed": {
-        const mem = process.memoryUsage();
-        return callback(null, mem[configuration]);
-      }
 
       default:
         return callback(new Error("Accessible property does not exist"));
