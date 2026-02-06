@@ -5,7 +5,6 @@
  */
 
 let counts = 0;
-let node = null;
 
 /**
  * @param {string} configuration
@@ -14,17 +13,19 @@ let node = null;
 function get(configuration, callback) {
   counts++;
 
+  const distribution = globalThis.distribution;
+  const node = distribution?.node?.config;
+
   if (configuration === "heapUsed" || configuration === "heapTotal") {
     const mem = process.memoryUsage();
     return callback(null, mem[configuration]);
   }
 
-  if (configuration === "counts") {
+  if (configuration === "counts")
     return callback(null, counts);
-  }
 
     if (!node)
-      return callback(null);
+      return callback(Error('Node not initialized'));
 
   switch (configuration) {
     case "nid":
@@ -46,7 +47,14 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function spawn(configuration, callback) {
-  node = configuration;
+  const distribution = globalThis.distribution;
+
+  if (!distribution || !distribution.node) {
+    return callback(new Error("Distribution not initialized"));
+  }
+
+  distribution.node.config = configuration;
+
   callback(null);
 }
 
@@ -54,7 +62,12 @@ function spawn(configuration, callback) {
  * @param {Callback} callback
  */
 function stop(callback) {
-  node = null;
+  const distribution = globalThis.distribution;
+
+  if (distribution && distribution.node) {
+    distribution.node.config = null;
+  }
+
   callback(null);
 }
 
