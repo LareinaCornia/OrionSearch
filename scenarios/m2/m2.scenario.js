@@ -100,12 +100,9 @@ test('(5 pts) (scenario) use rpc', (done) => {
   const node = {ip: '127.0.0.1', port: 9009};
 
   let addOneRPC = (args, callback) => {
-    try {
-      const result = addOne();
-      callback(null, result);
-    } catch (e) {
-      callback(e);
-    }
+    distribution.util.wire.createRPC(
+      distribution.util.wire.toAsync(addOne)
+    );
   };
 
   const rpcService = {

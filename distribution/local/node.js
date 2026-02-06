@@ -83,16 +83,30 @@ function start(callback) {
   const server = http.createServer((req, res) => {
     /* Your server will be listening for PUT requests. */
 
-    // Write some code...
-
+    if (req.method !== 'PUT') {
+      res.writeHead(405);
+      res.end();
+      return;
+    }
 
     /*
       The path of the http request will determine the service to be used.
       The url will have the form: http://node_ip:node_port/service/method
     */
 
-    // Write some code...
+    const parsedUrl = url.parse(req.url || '', true);
+    const parts = (parsedUrl.pathname || '')
+      .split('/')
+      .filter(Boolean);
 
+    if (parts.length < 3) {
+      res.writeHead(400);
+      res.end(JSON.stringify({error: 'Invalid path'}));
+      return;
+    }
+
+    const service = parts[1];
+    const method = parts[2];
 
     /*
       A common pattern in handling HTTP requests in Node.js is to have a
@@ -114,6 +128,7 @@ function start(callback) {
     const body = [];
 
     req.on('data', (chunk) => {
+      body.push(chunk);
     });
 
     req.on('end', () => {
@@ -125,8 +140,51 @@ function start(callback) {
         Then, you need to serialize the result and send it back to the caller.
       */
 
-      // Write some code...
+      let args = [];
 
+      try {
+        const raw = Buffer.concat(body).toString();
+
+        if (raw.length > 0) {
+          args = JSON.parse(raw);
+        }
+
+      } catch (error) {
+        res.writeHead(400);
+        res.end(JSON.stringify({error: 'Invalid JSON'}));
+        return;
+      }
+
+      globalThis.distribution.local.routes.get(
+        service,
+        (err, service) => {
+          if (err || !service || typeof service[method] !== 'function') {
+            res.writeHead(404);
+            res.end(JSON.stringify({error: 'Service or method not found'}));
+            return;
+          }
+
+          try {
+            service[method](args, (e, value) => {
+
+              const payload = JSON.stringify({
+                error: e ? e.message : null,
+                value: value,
+              });
+
+              res.writeHead(200, {
+                'Content-Type': 'application/json',
+              });
+
+              res.end(payload);
+            });
+
+          } catch (error) {
+            res.writeHead(500);
+            res.end(JSON.stringify({error: error.message}));
+          }
+        }
+      );
     });
   });
 

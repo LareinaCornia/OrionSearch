@@ -6,36 +6,46 @@
     Imporant: Do not modify any of the test headers (i.e., the test('header', ...) part). Doing so will result in grading penalties.
 */
 
-const distribution = require('../../distribution.js')();
+const distribution = require('../../distribution.js')({ ip: '127.0.0.1', port: 9000 });
 require('../helpers/sync-guard');
+
+beforeAll((done) => {
+  distribution.node.start(done);
+});
+
+afterAll((done) => {
+  if (distribution.node.server) {
+    distribution.node.server.close();
+  }
+  done();
+});
 
 test('(1 pts) student test', (done) => {
   // status test
-  distribution.local.status.spawn(
-    { ip: "127.0.0.1", port: 9000, nid: "n1", sid: "s1" },
-    () => {
-
-      distribution.local.status.get("ip", (err, res) => {
-        expect(err).toBeNull();
-        expect(res).toBe("127.0.0.1");
-        done();
-      });
-
+  distribution.local.status.get("ip", (err, res) => {
+    try {
+      expect(err).toBeNull();
+      expect(res).toBe(distribution.node.config.ip);
+      done();
+    } catch (e) {
+      done(e);
     }
-  );
+  });
 });
 
 
 test('(1 pts) student test', (done) => {
-  // route
-  const fn = (x, cb) => cb(null, x + 1);
+  // routes test
+  const service = {
+    inc: (x, cb) => cb(null, x + 1)
+  };
 
-  distribution.local.routes.put("inc", fn, (err) => {
+  distribution.local.routes.put(service, "inc", (err) => {
     expect(err).toBeNull();
 
     distribution.local.routes.get("inc", (err, res) => {
       expect(err).toBeNull();
-      expect(res).toBe(fn);
+      expect(res).toBe(service);
 
       distribution.local.routes.get("missing", (err) => {
         expect(err).toBeInstanceOf(Error);
@@ -56,19 +66,22 @@ test('(1 pts) student test', (done) => {
 
 test('(1 pts) student test', (done) => {
   // comm
-  distribution.local.routes.put("echo", (msg, cb) => {
-    cb(null, msg);
-  }, () => {
+  const echoService = {
+    echo: (msg, cb) => cb(null, msg)
+  };
+
+  distribution.local.routes.put(echoService, "echo", () => {
 
     distribution.local.comm.send(
-      { service: "routes", method: "get", args: ["echo"] },
+      ["echo"],
+      { node: { ip: "127.0.0.1", port: 9000 }, service: "routes", method: "get" },
       (err, res) => {
 
         expect(err).toBeNull();
-        expect(typeof res).toBe("function");
 
         distribution.local.comm.send(
-          { service: "bad", method: "x", args: [] },
+          [],
+          { node: { ip: "127.0.0.1", port: 9000 }, service: "bad", method: "x" },
           (err) => {
             expect(err).toBeInstanceOf(Error);
             done();
@@ -102,22 +115,20 @@ test('(1 pts) student test', (done) => {
 });
 
 test('(1 pts) student test', (done) => {
-  // RPC-style remote invocation simulation
-  distribution.local.routes.put("add", (args, cb) => {
-    cb(null, args[0] + args[1]);
-  }, () => {
+  // RPC-style invocation
+  const addService = {
+    add: (args, cb) => cb(null, args[0] + args[1])
+  };
 
+  distribution.local.routes.put(addService, "add", () => {
+    
     distribution.local.comm.send(
-      { service: "routes", method: "get", args: ["add"] },
-      (err, fn) => {
-
+      [[2, 3]],
+      { node: { ip: "127.0.0.1", port: 9000 }, service: "add", method: "add" },
+      (err, result) => {
         expect(err).toBeNull();
-
-        fn([2, 3], (err, result) => {
-          expect(err).toBeNull();
-          expect(result).toBe(5);
-          done();
-        });
+        expect(result).toBe(5);
+        done();
       }
     );
   });
