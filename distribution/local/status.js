@@ -15,6 +15,7 @@ function get(configuration, callback) {
 
   const distribution = globalThis.distribution;
   const node = distribution?.node?.config;
+  const id = distribution.util.id;
 
   if (configuration === "heapUsed" || configuration === "heapTotal") {
     const mem = process.memoryUsage();
@@ -29,9 +30,9 @@ function get(configuration, callback) {
 
   switch (configuration) {
     case "nid":
-      return callback(null, node["nid"]);
+      return callback(null, id.getNID(node));
     case "sid":
-      return callback(null, node["sid"]);
+      return callback(null, id.getSID(node));
     case "ip":
       return callback(null, node.ip);
     case "port":
