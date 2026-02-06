@@ -23,6 +23,9 @@ function get(configuration, callback) {
     return callback(null, counts);
   }
 
+    if (!node)
+      return callback(null);
+
   switch (configuration) {
     case "nid":
       return callback(null, node["nid"]);
