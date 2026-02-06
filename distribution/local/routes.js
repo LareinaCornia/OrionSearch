@@ -3,6 +3,7 @@
  * @typedef {string} ServiceName
  */
 
+const table = Object.create(null);
 
 /**
  * @param {ServiceName | {service: ServiceName, gid?: string}} configuration
@@ -10,7 +11,21 @@
  * @returns {void}
  */
 function get(configuration, callback) {
-  return callback(new Error('routes.get not implemented'));
+  try {
+    const name =
+      typeof configuration === "string"
+        ? configuration
+        : configuration?.service;
+
+    if (!name || !(name in table)) {
+      return callback(new Error("Service does not exist"));
+    }
+
+    return callback(null, table[name]);
+
+  } catch (err) {
+    return callback(err);
+  }
 }
 
 /**
@@ -20,7 +35,22 @@ function get(configuration, callback) {
  * @returns {void}
  */
 function put(service, configuration, callback) {
-  return callback(new Error('routes.put not implemented'));
+  try {
+    if (!configuration || typeof configuration !== "string") {
+      return callback(new Error("Invalid service name"));
+    }
+
+    if (typeof service !== "object") {
+      return callback(new Error("Invalid service object"));
+    }
+
+    table[configuration] = service;
+
+    return callback(null, configuration);
+
+  } catch (err) {
+    return callback(err);
+  }
 }
 
 /**
@@ -28,7 +58,18 @@ function put(service, configuration, callback) {
  * @param {Callback} callback
  */
 function rem(configuration, callback) {
-  return callback(new Error('routes.rem not implemented'));
+  try {
+    if (!(configuration in table)) {
+      return callback(new Error("Service does not exist"));
+    }
+
+    delete table[configuration];
+
+    return callback(null);
+
+  } catch (err) {
+    return callback(err);
+  }
 }
 
 module.exports = {get, put, rem};
