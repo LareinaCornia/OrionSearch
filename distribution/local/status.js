@@ -56,6 +56,7 @@ function spawn(configuration, callback) {
  * @param {Callback} callback
  */
 function stop(callback) {
+  node = null;
   callback(null);
 }
 
