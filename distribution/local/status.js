@@ -4,12 +4,47 @@
  * @typedef {import("../types.js").Node} Node
  */
 
+let counts = 0;
+let node = null;
+
 /**
  * @param {string} configuration
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  return callback(new Error('status.get not implemented'));
+  if (!node) {
+    return callback(new Error("Node not initialized"));
+  }
+
+  counts++;
+
+  try {
+    switch (configuration) {
+
+      case "nid":
+      case "sid":
+      case "ip":
+      case "port":
+        if (node[configuration] !== undefined) {
+          return callback(null, node[configuration]);
+        }
+        return callback(new Error("Property not found"));
+
+      case "counts":
+        return callback(null, counts);
+
+      case "heapUsed": {
+        const mem = process.memoryUsage();
+        return callback(null, mem[configuration]);
+      }
+
+      default:
+        return callback(new Error("Accessible property does not exist"));
+    }
+
+  } catch (err) {
+    return callback(err);
+  }
 };
 
 
@@ -18,14 +53,15 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function spawn(configuration, callback) {
-  callback(new Error('status.spawn not implemented'));
+  node = configuration;
+  callback(null);
 }
 
 /**
  * @param {Callback} callback
  */
 function stop(callback) {
-  callback(new Error('status.stop not implemented'));
+  callback(null);
 }
 
 module.exports = {get, spawn, stop};
