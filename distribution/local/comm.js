@@ -57,7 +57,7 @@ function send(message, remote, callback) {
           const parsed = JSON.parse(data);
 
           if (parsed.error) {
-            return callback(new Error(parsed.error));
+            return callback(null, new Error(parsed.error));
           }
 
           return callback(null, parsed.value);
