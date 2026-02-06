@@ -75,9 +75,8 @@ function send(message, remote, callback) {
         try {
           const decoded = globalThis.distribution.util.deserialize(data);
 
-          // if (!Array.isArray(decoded) || decoded.length !== 2) {
-          //   return callback(new Error('Invalid response'), null);
-          // }
+          if (!Array.isArray(decoded))
+            return callback(new Error('Invalid response'), null);
 
           const [err, value] = decoded;
           
