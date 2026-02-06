@@ -13,6 +13,8 @@ let counts = 0;
 function get(configuration, callback) {
   counts++;
 
+  const key = Array.isArray(configuration) ? configuration[0] : configuration;
+
   const distribution = globalThis.distribution;
   if (!distribution) 
     return callback(new Error('Distribution missing'), null);
@@ -23,15 +25,15 @@ function get(configuration, callback) {
   if (!node || !id)
     return callback(new Error('Node or ID utility not initialized'), null);
 
-  if (configuration === "heapUsed" || configuration === "heapTotal") {
+  if (key === "heapUsed" || key=== "heapTotal") {
     const mem = process.memoryUsage();
-    return callback(null, mem[configuration]);
+    return callback(null, mem[key]);
   }
 
-  if (configuration === "counts")
+  if (key === "counts")
     return callback(null, counts);
 
-  switch (configuration) {
+  switch (key) {
     case "nid":
       const nid = id.getNID(node);
       return callback(null, nid ?? null);
