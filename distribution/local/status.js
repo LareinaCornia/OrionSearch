@@ -23,22 +23,15 @@ function get(configuration, callback) {
     return callback(null, counts);
   }
 
-  if (!node) {
-    return callback(new Error("Node not initialized"));
-  }
-
   switch (configuration) {
     case "nid":
     case "sid":
     case "ip":
     case "port":
-      if (node[configuration] !== undefined) {
+      if (node[configuration] !== undefined) 
         return callback(null, node[configuration]);
-      }
-      return callback(new Error("Property not found"));
-
     default:
-      return callback(new Error("Accessible property does not exist"));
+      return callback(new Error("Property does not exist"));
   }
 };
 
