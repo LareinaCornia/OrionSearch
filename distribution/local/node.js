@@ -9,8 +9,6 @@ const log = require('../util/log.js');
 
 const yargs = require('yargs/yargs');
 
-const util = globalThis.distribution.util;
-
 /**
  * @returns {Node}
  */
@@ -82,6 +80,8 @@ function setNodeConfig() {
  * @returns {void}
  */
 function start(callback) {
+  const util = globalThis.distribution.util;
+  
   const server = http.createServer((req, res) => {
     /* Your server will be listening for PUT requests. */
     if (req.method !== 'PUT') {
