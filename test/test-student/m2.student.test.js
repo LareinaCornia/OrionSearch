@@ -125,14 +125,17 @@ test('(1 pts) student test', (done) => {
   };
 
   distribution.local.routes.put(addService, "add", () => {
-    
     distribution.local.comm.send(
-      [[2, 3]],
+      [2, 3],
       { node: { ip: "127.0.0.1", port: 9000 }, service: "add", method: "add" },
       (err, result) => {
-        expect(err).toBeNull();
-        expect(result).toBe(5);
-        done();
+        try {
+          expect(err).toBeNull();
+          expect(result).toBe(5);
+          done();
+        } catch (e) {
+          done(e);
+        }
       }
     );
   });
