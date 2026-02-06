@@ -22,20 +22,41 @@ const http = require('node:http');
  */
 function send(message, remote, callback) {
   try {
-    if (!remote || !remote.node) {
-      return callback(new Error('Invalid remote target'));
+    if (!Array.isArray(message)) {
+      return callback(new Error('Invalid message'));
     }
 
-    const { ip, port } = remote.node;
-    const gid = remote.gid || 'local';
-    const path = `/${gid}/${remote.service}/${remote.method}`;
+    if (!remote || typeof remote !== 'object') {
+      return callback(new Error('Invalid remote'));
+    }
 
-    const payload = JSON.stringify(message);
+    const { node, service, method } = remote;
+
+    if (!node || typeof node !== 'object') {
+      return callback(new Error('Invalid remote node'));
+    }
+
+    if (!node.ip || !node.port) {
+      return callback(new Error('Invalid remote node'));
+    }
+
+    if (!service || typeof service !== 'string') {
+      return callback(new Error('Invalid service'));
+    }
+
+    if (!method || typeof method !== 'string') {
+      return callback(new Error('Invalid method'));
+    }
+
+    const gid = remote.gid || 'local';
+    const path = `/${gid}/${service}/${method}`;
+
+    const payload = globalThis.distribution.util.serialize(message);
 
     const options = {
-      hostname: ip,
-      port: port,
-      path: path,
+      hostname: node.ip,
+      port: node.port,
+      path,
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -52,15 +73,15 @@ function send(message, remote, callback) {
 
       res.on('end', () => {
         try {
-          if (!data) return callback(null);
+          const decoded = globalThis.distribution.util.deserialize(data);
 
-          const parsed = JSON.parse(data);
-
-          if (parsed.error) {
-            return callback(null, new Error(parsed.error));
+          if (!Array.isArray(decoded) || decoded.length !== 2) {
+            return callback(new Error('Invalid response'));
           }
 
-          return callback(null, parsed.value);
+          const [err, value] = decoded;
+          
+          return callback(err || null, value ?? null);
 
         } catch (e) {
           return callback(e);
