@@ -117,7 +117,11 @@ test('(1 pts) student test', (done) => {
 test('(1 pts) student test', (done) => {
   // RPC-style invocation
   const addService = {
-    add: (args, cb) => cb(null, args[0] + args[1])
+    add: (args, cb) => {
+      const params = Array.isArray(args) ? args : [];
+      const result = params[0] + params[1];
+      cb(null, result);
+    }
   };
 
   distribution.local.routes.put(addService, "add", () => {
