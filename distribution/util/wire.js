@@ -16,6 +16,8 @@ function createRPC(func) {
     throw new TypeError(`createRPC expects a function, got ${typeof func}`);
   }
 
+  const homeNode = globalThis.distribution.node;
+
   // globalThis.toLocal: Map<string, Function>  (remote pointer -> local function)
   const remotePtr = crypto
     .createHash('sha256')
@@ -52,6 +54,7 @@ function createRPC(func) {
   }
 
   stub.__rpc_ptr__ = remotePtr;
+  stub.__rpc_node__ = homeNode;
   stub.__is_rpc_stub__ = true;
 
   return stub;

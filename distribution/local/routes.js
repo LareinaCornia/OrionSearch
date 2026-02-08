@@ -57,10 +57,12 @@ function put(service, configuration, callback) {
       for (const [method, fn] of Object.entries(s)) {
         if (typeof fn === "function" && fn.__is_rpc_stub__) {
           let src = fn.toString();
+
           src = src.replace(
             '"__NODE_INFO__"',
-            JSON.stringify(global.distribution.node)
+            JSON.stringify(fn.__rpc_node__)
           );
+
           src = src.replace(
             '"__RPC_PTR__"',
             `"${fn.__rpc_ptr__}"`
