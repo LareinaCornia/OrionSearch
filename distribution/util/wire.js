@@ -22,31 +22,19 @@ function createRPC(func) {
 
   // create function stub
   function stub(/** @type {any[]} */ ...args) {
-    let callback = typeof args[args.length - 1] === 'function' ? args.pop() : () => {};
-    let realArgs = args;
-    if (args.length === 1 && args[0] !== null && typeof args[0] === 'object' && '__raw_args__' in args[0]) {
-        realArgs = args[0].__raw_args__;
-    }
+    const callback = args.pop();
 
     /** @type {any} */
     let node = "__NODE_INFO__";
-    if (node === "__NODE_INFO__") {
-      node = distribution.node.config;
-    }
-
-    let ptr = "__RPC_PTR__";
-    if (ptr === "__RPC_PTR__") {
-      ptr = remotePtr;
-    }
     
     const remote = {
-      service: 'rpc',
+      service: 'rpcService',
       method: 'call',
       node: node,
     };
 
     distribution.local.comm.send(
-      [ptr, args],
+      ["__RPC_PTR__", args],
       remote,
       callback 
     );
@@ -54,6 +42,14 @@ function createRPC(func) {
 
   stub.__rpc_ptr__ = remotePtr;
   stub.__is_rpc_stub__ = true;
+
+  const originalSrc = stub.toString.bind(stub);
+  stub.toString = () => {
+    let src = originalSrc();
+    src = src.replace('"__NODE_INFO__"', JSON.stringify(distribution.node.config));
+    src = src.replace('"__RPC_PTR__"', JSON.stringify(remotePtr));
+    return src;
+  };
 
   return stub;
 }

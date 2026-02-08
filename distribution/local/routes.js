@@ -40,30 +40,7 @@ function put(service, configuration, callback) {
   try {
     const s = Array.isArray(service) ? service[0] : service;
     const name = Array.isArray(configuration) ? configuration[0] : configuration;
-    
-    let finalService = s;
-
-    if (typeof s === 'object' && s !== null) {
-      const methods = Object.keys(s);
-      const hasRPC = Object.values(s).some(f => typeof f === 'function' && f.__is_rpc_stub__);
-      
-      if (hasRPC) {
-        finalService = { ...s };
-        for (const m of methods) {
-          if (typeof s[m] === 'function' && s[m].__is_rpc_stub__) {
-            let src = s[m].toString();
-            
-            src = src.replace('="__NODE_INFO__"', `=${JSON.stringify(globalThis.distribution.node.config)}`);
-            src = src.replace('="__RPC_PTR__"', `="${s[m].__rpc_ptr__}"`);
-            
-            finalService[m] = eval(`(${src})`);
-            finalService[m].__is_rpc_stub__ = true;
-          }
-        }
-      }
-    }
-
-    table[name] = finalService;
+    table[name] = s;
     return callback(null, name);
   } catch (err) {
     return callback(err, null);
@@ -95,19 +72,15 @@ const routesService = {
   rem: rem,
 };
 
-const rpcService = {
-  call: (payload, callback) => {
-    const [ptr, args] = payload;
-    const fn = globalThis.toLocal.get(ptr);
-    if (typeof fn === 'function') {
-      fn(...args, callback);
-    } else {
-      callback(new Error("RPC procedure not found"));
-    }
+table['routes'] = routesService;
+
+table['rpcService'] = {
+  call(ptr, args, cb) {
+    const f = globalThis.toLocal.get(ptr);
+    if (!f) 
+      return cb(new Error("Unknown RPC ptr"));
+    return f(...args, cb);
   }
 };
-
-table['routes'] = routesService;
-table['rpc'] = rpcService;
 
 module.exports = {get, put, rem};
