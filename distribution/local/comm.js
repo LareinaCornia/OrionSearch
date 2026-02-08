@@ -30,10 +30,6 @@ function send(message, remote, callback) {
       return callback(new Error('Invalid remote'), null);
     }
 
-    if (!remote.node) {
-      remote.node = distribution?.node?.config;
-    }
-
     const { node, service, method } = remote;
 
     if (!node || typeof node !== 'object') {
@@ -41,7 +37,7 @@ function send(message, remote, callback) {
     }
 
     if (!node.ip || !node.port) {
-      return callback(new Error('Invalid remote node'), null);
+      return callback(new Error('Invalid remote node, lacking port or ip'), null);
     }
 
     if (!service || typeof service !== 'string') {
