@@ -12,13 +12,8 @@ const crypto = require('node:crypto');
  */
 function createRPC(func) {
   // Write some code...
-  if (typeof func !== 'function') {
-    throw new TypeError(`createRPC expects a function, got ${typeof func}`);
-  }
-
-  const homeNode = globalThis.distribution.node;
-
-  // globalThis.toLocal: Map<string, Function>  (remote pointer -> local function)
+  
+  // globalThis.toLocal: Map<string, Function>
   const remotePtr = crypto
     .createHash('sha256')
     .update(crypto.randomBytes(32))
@@ -27,34 +22,25 @@ function createRPC(func) {
   globalThis.toLocal.set(remotePtr, func);
 
   function stub(/** @type {any[]} */ ...args) {
-    /** @type {Callback} */
     const callback = args.pop();
 
-    if (typeof callback !== 'function') {
-      throw new Error('RPC stub must be called with a callback as the last argument');
-    }
-
-    const local = globalThis.distribution?.local;
-    const comm = local?.comm;
-
-    if (!comm || typeof comm.send !== 'function') {
-      return callback(new Error('RPC stub cannot find global.distribution.local.comm.send'));
-    }
-
-    /** @type {{node: any, service: string, method: string}} */
+    /** @type {any} */
+    const __NODE_INFO__ = undefined;
+    
     const remote = {
-      node: "__NODE_INFO__",
       service: 'rpc',
       method: 'call',
+      node: __NODE_INFO__,
     };
 
-    const message = [ "__RPC_PTR__", args ];
-
-    comm.send(message, remote, callback);
+    global.distribution.local.comm.send(
+      [remotePtr, args],
+      remote,
+      callback
+    );
   }
 
   stub.__rpc_ptr__ = remotePtr;
-  stub.__rpc_node__ = homeNode;
   stub.__is_rpc_stub__ = true;
 
   return stub;

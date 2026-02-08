@@ -59,13 +59,13 @@ function put(service, configuration, callback) {
           let src = fn.toString();
 
           src = src.replace(
-            '"__NODE_INFO__"',
-            JSON.stringify(fn.__rpc_node__)
+            '__NODE_INFO__',
+            JSON.stringify(globalThis.distribution.node)
           );
 
           src = src.replace(
-            '"__RPC_PTR__"',
-            `"${fn.__rpc_ptr__}"`
+            '__RPC_PTR__',
+            fn.__rpc_ptr__
           );
           finalService[method] = eval(`(${src})`);
         } 
