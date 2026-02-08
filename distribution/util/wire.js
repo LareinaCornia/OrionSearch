@@ -22,7 +22,11 @@ function createRPC(func) {
 
   // create function stub
   function stub(/** @type {any[]} */ ...args) {
-    const callback = args.pop();
+    let callback = typeof args[args.length - 1] === 'function' ? args.pop() : () => {};
+    let realArgs = args;
+    if (args.length === 1 && args[0] !== null && typeof args[0] === 'object' && '__raw_args__' in args[0]) {
+        realArgs = args[0].__raw_args__;
+    }
 
     /** @type {any} */
     let node = "__NODE_INFO__";
@@ -36,7 +40,7 @@ function createRPC(func) {
     }
     
     const remote = {
-      service: 'rpcService',
+      service: 'rpc',
       method: 'call',
       node: node,
     };

@@ -108,6 +108,6 @@ const rpcService = {
 };
 
 table['routes'] = routesService;
-table['rpcService'] = rpcService;
+table['rpc'] = rpcService;
 
 module.exports = {get, put, rem};
