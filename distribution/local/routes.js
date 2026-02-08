@@ -45,32 +45,27 @@ function put(service, configuration, callback) {
       return callback(new Error("Invalid service name"), null);
     }
 
-    if (typeof s !== "object" && typeof s !== "function") {
-      return callback(new Error("Invalid service object"), null);
-    }
-
-    // RPC aware
     let finalService = s;
-    if (typeof s === "object") {
-      finalService = {};
+
+    const hasRPC = typeof s === 'object' && s !== null && Object.values(s).some(fn => typeof fn === 'function' && fn.__is_rpc_stub__);
+
+    if (hasRPC) {
+      finalService = Object.assign(Object.create(Object.getPrototypeOf(s)), s);
 
       for (const [method, fn] of Object.entries(s)) {
         if (typeof fn === "function" && fn.__is_rpc_stub__) {
           let src = fn.toString();
-
+          
           src = src.replace(
-            '__NODE_INFO__',
+            '__NODE_INFO__', 
             JSON.stringify(globalThis.distribution.node)
           );
-
           src = src.replace(
             '__RPC_PTR__',
-            fn.__rpc_ptr__
+            `'${fn.__rpc_ptr__}'`
           );
           finalService[method] = eval(`(${src})`);
-        } 
-        else 
-          finalService[method] = fn;
+        }
       }
     }
 
