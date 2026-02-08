@@ -115,23 +115,35 @@ test('(1 pts) student test', (done) => {
 });
 
 test('(1 pts) student test', (done) => {
-  // RPC-style invocation
-  const addService = {
-    add: (args, cb) => {
-      const params = Array.isArray(args) ? args : [];
-      const result = params[0] + params[1];
-      cb(null, result);
-    }
+  // RPC test
+  let n = 0;
+
+  const f = () => {
+    n += 1;
+    return n;
   };
 
-  distribution.local.routes.put(addService, "add", () => {
+  const rpcFunc = distribution.util.wire.createRPC(
+    distribution.util.wire.toAsync(f)
+  );
+
+  const service = {
+    inc: rpcFunc,
+  };
+
+  distribution.local.routes.put(service, "counter", () => {
+
     distribution.local.comm.send(
-      [2, 3],
-      { node: { ip: "127.0.0.1", port: 9000 }, service: "add", method: "add" },
+      [],
+      {
+        node: { ip: "127.0.0.1", port: 9000 },
+        service: "counter",
+        method: "inc",
+      },
       (err, result) => {
         try {
           expect(err).toBeNull();
-          expect(result).toBe(5);
+          expect(result).toBe(1);
           done();
         } catch (e) {
           done(e);

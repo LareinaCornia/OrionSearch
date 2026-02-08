@@ -5,37 +5,56 @@
  * @typedef {import("../types.js").Hasher} Hasher
  */
 const log = require('../util/log.js');
-const id = require('../util/id.js');
-
-const toLocal = {};
+const crypto = require('node:crypto');
 
 /**
  * @param {Function} func
  */
 function createRPC(func) {
   // Write some code...
-  const remotePointer = id.getID(func.toString() + Math.random());
-  toLocal[remotePointer] = func;
+  if (typeof func !== 'function') {
+    throw new TypeError(`createRPC expects a function, got ${typeof func}`);
+  }
 
-  const currentNode = typeof globalThis.local !== 'undefined' ? globalThis.node : 'UNKNOWN_NODE';
+  // globalThis.toLocal: Map<string, Function>  (remote pointer -> local function)
+  const remotePtr = crypto
+    .createHash('sha256')
+    .update(crypto.randomBytes(32))
+    .digest('hex');
 
-  const stub = (...args) => {
-    const cb = args.pop();
-    const remote = { 
-      node: "__NODE_INFO__", 
-      service: 'rpc', 
-      method: "__RPC_ID__" 
+  globalThis.toLocal.set(remotePtr, func);
+
+  function stub(/** @type {any[]} */ ...args) {
+    /** @type {Callback} */
+    const callback = args.pop();
+
+    if (typeof callback !== 'function') {
+      throw new Error('RPC stub must be called with a callback as the last argument');
+    }
+
+    const local = globalThis.distribution?.local;
+    const comm = local?.comm;
+
+    if (!comm || typeof comm.send !== 'function') {
+      return callback(new Error('RPC stub cannot find global.distribution.local.comm.send'));
+    }
+
+    /** @type {{node: any, service: string, method: string}} */
+    const remote = {
+      node: "__NODE_INFO__",
+      service: 'rpc',
+      method: 'call',
     };
-  
-    globalThis.local.comm.send(args, remote, cb);
-  };
 
-  let stubStr = stub.toString()
-    .replace("__NODE_INFO__", currentNode)
-    .replace("__RPC_ID__", remotePointer);
+    const message = [ "__RPC_PTR__", args ];
 
-  const finalStub = new Function(`return ${stubStr}`)();
-  return finalStub;
+    comm.send(message, remote, callback);
+  }
+
+  stub.__rpc_ptr__ = remotePtr;
+  stub.__is_rpc_stub__ = true;
+
+  return stub;
 }
 
 /**
@@ -62,20 +81,8 @@ function toAsync(func) {
   return asyncFunc;
 }
 
-function rpcHandler(args, remote, cb) {
-  const pointer = remote.method;
-  const func = toLocal[pointer];
-  
-  if (typeof func === 'function') {
-    func(...args, cb);
-  } else {
-    cb(new Error(`RPC Method ${pointer} not found on this node.`));
-  }
-}
 
 module.exports = {
   createRPC,
   toAsync,
-  toLocal,
-  rpcHandler,
 };
