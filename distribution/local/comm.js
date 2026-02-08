@@ -30,6 +30,10 @@ function send(message, remote, callback) {
       return callback(new Error('Invalid remote'), null);
     }
 
+    if (!remote.node) {
+      remote.node = distribution?.node?.config;
+    }
+
     const { node, service, method } = remote;
 
     if (!node || typeof node !== 'object') {
