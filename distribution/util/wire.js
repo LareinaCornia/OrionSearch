@@ -12,8 +12,9 @@ const crypto = require('node:crypto');
  */
 function createRPC(func) {
   // Write some code...
-  
   // globalThis.toLocal: Map<string, Function>
+  globalThis.toLocal = globalThis.toLocal || new Map();
+
   const remotePtr = crypto
     .createHash('sha256')
     .update(crypto.randomBytes(32))
@@ -26,6 +27,7 @@ function createRPC(func) {
 
     /** @type {any} */
     const __NODE_INFO__ = undefined;
+    const __RPC_PTR__ = "__RPC_PTR__";
     
     const remote = {
       service: 'rpc',
@@ -33,8 +35,8 @@ function createRPC(func) {
       node: __NODE_INFO__,
     };
 
-    global.distribution.local.comm.send(
-      [remotePtr, args],
+    globalThis.distribution.local.comm.send(
+      [__RPC_PTR__, args],
       remote,
       callback
     );

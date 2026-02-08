@@ -74,7 +74,7 @@ function put(service, configuration, callback) {
       }
     }
 
-    table[name] = s;
+    table[name] = finalService;
     return callback(null, name);
   } catch (err) {
     return callback(err, null);
@@ -106,6 +106,19 @@ const routesService = {
   rem: rem,
 };
 
+const rpcService = {
+  call: (payload, callback) => {
+    const [ptr, args] = payload;
+    const fn = globalThis.toLocal.get(ptr);
+    if (typeof fn === 'function') {
+      fn(...args, callback);
+    } else {
+      callback(new Error("RPC procedure not found"));
+    }
+  }
+};
+
 table['routes'] = routesService;
+table['rpc'] = rpcService;
 
 module.exports = {get, put, rem};
