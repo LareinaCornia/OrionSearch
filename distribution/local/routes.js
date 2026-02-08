@@ -40,31 +40,23 @@ function put(service, configuration, callback) {
   try {
     const s = Array.isArray(service) ? service[0] : service;
     const name = Array.isArray(configuration) ? configuration[0] : configuration;
-
-    if (!name || typeof name !== "string") {
-      return callback(new Error("Invalid service name"), null);
-    }
-
+    
     let finalService = s;
 
-    const hasRPC = typeof s === 'object' && s !== null && Object.values(s).some(fn => typeof fn === 'function' && fn.__is_rpc_stub__);
-
-    if (hasRPC) {
-      finalService = Object.assign(Object.create(Object.getPrototypeOf(s)), s);
-
-      for (const [method, fn] of Object.entries(s)) {
-        if (typeof fn === "function" && fn.__is_rpc_stub__) {
-          let src = fn.toString();
-          
-          src = src.replace(
-            '__NODE_INFO__', 
-            JSON.stringify(globalThis.distribution.node)
-          );
-          src = src.replace(
-            '__RPC_PTR__',
-            `'${fn.__rpc_ptr__}'`
-          );
-          finalService[method] = eval(`(${src})`);
+    if (typeof s === 'object' && s !== null) {
+      const hasRPC = Object.values(s).some(f => typeof f === 'function' && f.__is_rpc_stub__);
+      
+      if (hasRPC) {
+        finalService = Object.assign(Object.create(Object.getPrototypeOf(s)), s);
+        
+        for (const [method, fn] of Object.entries(s)) {
+          if (typeof fn === 'function' && fn.__is_rpc_stub__) {
+            let src = fn.toString();
+            src = src.replace('="__NODE_INFO__"', `=${JSON.stringify(globalThis.distribution.node.config)}`);
+            src = src.replace('="__RPC_PTR__"', `="${fn.__rpc_ptr__}"`);
+            
+            finalService[method] = eval(`(${src})`);
+          }
         }
       }
     }
@@ -114,6 +106,6 @@ const rpcService = {
 };
 
 table['routes'] = routesService;
-table['rpc'] = rpcService;
+table['rpcService'] = rpcService;
 
 module.exports = {get, put, rem};

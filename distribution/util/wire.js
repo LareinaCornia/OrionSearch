@@ -4,6 +4,9 @@
  * @typedef {import("../types.js").Node} Node
  * @typedef {import("../types.js").Hasher} Hasher
  */
+
+const distribution = globalThis.distribution;
+
 const log = require('../util/log.js');
 const crypto = require('node:crypto');
 
@@ -11,34 +14,37 @@ const crypto = require('node:crypto');
  * @param {Function} func
  */
 function createRPC(func) {
-  // Write some code...
-  // globalThis.toLocal: Map<string, Function>
+  // add g to endpoint
   globalThis.toLocal = globalThis.toLocal || new Map();
+  const remotePtr = crypto.createHash('sha256').update(crypto.randomBytes(32)).digest('hex');
+  const asyncFunc = toAsync(func);
+  globalThis.toLocal.set(remotePtr, asyncFunc);
 
-  const remotePtr = crypto
-    .createHash('sha256')
-    .update(crypto.randomBytes(32))
-    .digest('hex');
-
-  globalThis.toLocal.set(remotePtr, func);
-
+  // create function stub
   function stub(/** @type {any[]} */ ...args) {
     const callback = args.pop();
 
     /** @type {any} */
-    const __NODE_INFO__ = undefined;
-    const __RPC_PTR__ = "__RPC_PTR__";
+    let node = "__NODE_INFO__";
+    if (node === "__NODE_INFO__") {
+      node = distribution.node.config;
+    }
+
+    let ptr = "__RPC_PTR__";
+    if (ptr === "__RPC_PTR__") {
+      ptr = remotePtr;
+    }
     
     const remote = {
-      service: 'rpc',
+      service: 'rpcService',
       method: 'call',
-      node: __NODE_INFO__,
+      node: node,
     };
 
-    globalThis.distribution.local.comm.send(
-      [__RPC_PTR__, args],
+    distribution.local.comm.send(
+      [ptr, args],
       remote,
-      callback
+      callback 
     );
   }
 
