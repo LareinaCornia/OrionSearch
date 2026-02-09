@@ -40,7 +40,7 @@ function put(service, configuration, callback) {
   try {
     const s = Array.isArray(service) ? service[0] : service;
     const name = Array.isArray(configuration) ? configuration[0] : configuration;
-    
+
     if (name === 'rpcService' && table[name]) {
       Object.assign(table[name], s);
       return callback(null, name);
@@ -85,7 +85,7 @@ table['rpcService'] = {
     const f = globalThis.toLocal.get(ptr);
     if (!f) 
       return cb(new Error("Unknown RPC ptr"));
-    return f(...args, cb);
+    return f(...args);
   }
 };
 
