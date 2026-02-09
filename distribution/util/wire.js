@@ -22,7 +22,7 @@ function createRPC(func) {
 
   // create function stub
   function stub(/** @type {any[]} */ ...args) {
-    const callback = args[args.length - 1]; 
+    const callback = args.pop(); 
     if (typeof callback !== 'function') {
       throw new Error('RPC requires callback as last argument');
     }
