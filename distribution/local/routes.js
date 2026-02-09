@@ -81,15 +81,10 @@ const routesService = {
 table['routes'] = routesService;
 
 table['__system__rpcService'] = {
-  call(args, cb) {
+  call(args) {
     const [ptr, fnArgs] = args;
-
     const f = globalThis.toLocal.get(ptr);
-    if (!f) {
-      return cb(new Error('Unknown RPC ptr'), null);
-    }
-
-    return f(...fnArgs, cb);
+    return f(...fnArgs);
   }
 };
 
