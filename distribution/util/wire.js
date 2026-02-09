@@ -25,7 +25,7 @@ function createRPC(func) {
     const callback = args.pop();
 
     /** @type {any} */
-    let node = "__NODE_INFO__";
+    let node = distribution.node.config;
     
     const remote = {
       service: 'rpcService',
@@ -46,8 +46,17 @@ function createRPC(func) {
   const originalSrc = stub.toString.bind(stub);
   stub.toString = () => {
     let src = originalSrc();
-    src = src.replace('"__NODE_INFO__"', JSON.stringify(distribution.node.config));
-    src = src.replace('"__RPC_PTR__"', JSON.stringify(remotePtr));
+    // src = src.replace('"__NODE_INFO__"', JSON.stringify(distribution.node.config));
+    // src = src.replace('"__RPC_PTR__"', JSON.stringify(remotePtr));
+    src = src.replace(
+      JSON.stringify(distribution.node.config),
+      JSON.stringify(distribution.node.config)
+    );
+
+    src = src.replace(
+      remotePtr,
+      JSON.stringify(remotePtr)
+    );
     return src;
   };
 
