@@ -22,7 +22,7 @@ function createRPC(func) {
 
   // create function stub
   function stub(/** @type {any[]} */ ...args) {
-    const callback = args.pop();
+    const callback = args[args.length - 1]; 
 
     /** @type {any} */
     let node = distribution.node.config;
