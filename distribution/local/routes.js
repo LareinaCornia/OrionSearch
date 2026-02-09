@@ -40,12 +40,6 @@ function put(service, configuration, callback) {
   try {
     const s = Array.isArray(service) ? service[0] : service;
     const name = Array.isArray(configuration) ? configuration[0] : configuration;
-
-    if (name === 'rpcService' && table[name]) {
-      Object.assign(table[name], s);
-      return callback(null, name);
-    }
-
     table[name] = s;
     return callback(null, name);
   } catch (err) {
