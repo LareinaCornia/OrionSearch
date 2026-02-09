@@ -90,7 +90,7 @@ table['__system__rpcService'] = {
     }
 
     try {
-      return cb(null, f(...args));
+      return f(...args, cb);
     } catch (err) {
       return cb(err, null);
     }
