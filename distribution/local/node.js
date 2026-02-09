@@ -146,7 +146,7 @@ function start(callback) {
       try {
         const raw = Buffer.concat(body).toString();
 
-        if (raw.length > 0) {
+        if (raw.length >= 0) {
           args = util.deserialize(raw);
         }
 
