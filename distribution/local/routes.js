@@ -80,7 +80,7 @@ const routesService = {
 
 table['routes'] = routesService;
 
-table['rpcService'] = {
+table['__system__rpcService'] = {
   call(ptr, args, cb) {
     const f = globalThis.toLocal.get(ptr);
     if (!f) 

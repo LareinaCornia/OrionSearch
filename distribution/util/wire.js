@@ -23,12 +23,15 @@ function createRPC(func) {
   // create function stub
   function stub(/** @type {any[]} */ ...args) {
     const callback = args[args.length - 1]; 
+    if (typeof callback !== 'function') {
+      throw new Error('RPC requires callback as last argument');
+    }
 
     /** @type {any} */
     let node = distribution.node.config;
     
     const remote = {
-      service: 'rpcService',
+      service: '__system__rpcService',
       method: 'call',
       node: node,
     };
