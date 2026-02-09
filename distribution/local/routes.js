@@ -81,12 +81,19 @@ const routesService = {
 table['routes'] = routesService;
 
 table['__system__rpcService'] = {
-  call(ptr, args) {
-    const cb = args[args.length - 1]; 
+  call(message, cb) {
+    const [ptr, args] = message;
+
     const f = globalThis.toLocal.get(ptr);
-    if (!f) 
-      return cb(new Error("Unknown RPC ptr"));
-    return f(...args);
+    if (!f) {
+      return cb(new Error('Unknown RPC ptr'), null);
+    }
+
+    try {
+      return f(...args);
+    } catch (err) {
+      return cb(err, null);
+    }
   }
 };
 
