@@ -107,31 +107,49 @@
         "ssd-gb": 58
       },
       "throughput": {
-        "dev": [
-          {
-            "implementation": "custom comm",
-            "value": "13730 req/s"
-          },
-          {
-            "implementation": "built-in rpc",
-            "value": "5733 req/s"
-          }
-        ],
-        "aws": []
-      },
-      "latency": {
-        "dev": [
-          {
-            "implementation": "custom comm",
-            "value": "49.389 ms"
-          },
-          {
-            "implementation": "built-in rpc",
-            "value": "99.212 ms"
-          }
-        ],
-        "aws": []
-      },
+      "dev": [
+        {
+          "implementation": "custom comm",
+          "value": "13730 req/s"
+        },
+        {
+          "implementation": "built-in rpc",
+          "value": "5733 req/s"
+        }
+      ],
+      "aws": [
+        {
+          "implementation": "custom comm",
+          "value": "3286.87 req/s"
+        },
+        {
+          "implementation": "built-in rpc",
+          "value": "1809.75 req/s"
+        }
+      ]
+    },
+    "latency": {
+      "dev": [
+        {
+          "implementation": "custom comm",
+          "value": "49.389 ms"
+        },
+        {
+          "implementation": "built-in rpc",
+          "value": "99.212 ms"
+        }
+      ],
+      "aws": [
+        {
+          "implementation": "custom comm",
+          "value": "204.671 ms"
+        },
+        {
+          "implementation": "built-in rpc",
+          "value": "329.220 ms"
+        }
+      ]
+    },
       "dloc": 10000
     },
     {
