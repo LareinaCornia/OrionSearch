@@ -59,8 +59,9 @@ function rem(configuration, callback) {
       return callback(new Error("Service does not exist"), null);
     }
 
+    const removed = table[name];
     delete table[name];
-    return callback(null, null);
+    return callback(null, removed); 
   } catch (err) {
     return callback(err, null);
   }

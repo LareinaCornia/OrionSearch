@@ -86,7 +86,7 @@ function start(callback) {
     /* Your server will be listening for PUT requests. */
     if (req.method !== 'PUT') {
       res.writeHead(405);
-      res.end(util.serialize([new Error('Only PUT supported'), null]));
+      res.end(util.serialize(new Error('Only PUT supported')));
       return;
     }
 
