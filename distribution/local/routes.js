@@ -75,19 +75,12 @@ const routesService = {
 table['routes'] = routesService;
 
 table['__system__rpcService'] = {
-  call(message, cb) {
-    const [ptr, args] = message;
-
-    const f = globalThis.toLocal.get(ptr);
-    if (!f) {
-      return cb(new Error('Unknown RPC ptr'), null);
+  call(ptr, args, callback) {
+    const func = globalThis.toLocal.get(ptr);
+    if (!func) {
+      return callback(new Error('Unknown RPC ptr'), null);
     }
-
-    try {
-      return f(...args, cb);
-    } catch (err) {
-      return cb(err, null);
-    }
+    func(...args, callback);
   }
 };
 

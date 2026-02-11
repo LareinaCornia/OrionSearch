@@ -86,7 +86,7 @@ function start(callback) {
     /* Your server will be listening for PUT requests. */
     if (req.method !== 'PUT') {
       res.writeHead(405);
-      res.end();
+      res.end(util.serialize([new Error('Only PUT supported'), null]));
       return;
     }
 
@@ -166,14 +166,9 @@ function start(callback) {
           }
 
           try {
-            service[method](args, (e, value) => {
-
+            service[method](...args, (e, value) => {
               const payload = util.serialize([e, value]);
-
-              res.writeHead(200, {
-                'Content-Type': 'application/json',
-              });
-
+              res.writeHead(200, {'Content-Type': 'application/json'});
               res.end(payload);
             });
 

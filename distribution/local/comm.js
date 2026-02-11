@@ -65,6 +65,14 @@ function send(message, remote, callback) {
     };
 
     const req = http.request(options, (res) => {
+      const { statusCode, statusMessage } = res;
+      if (statusCode !== 200) {
+        return callback(
+          new Error(`HTTP ${statusCode}: ${statusMessage}`),
+          null
+        );
+      }
+
       let data = '';
 
       res.on('data', (chunk) => {
@@ -79,7 +87,7 @@ function send(message, remote, callback) {
             return callback(new Error('Invalid response'), null);
 
           const [err, value] = decoded;
-          
+
           return callback(err || null, value ?? null);
 
         } catch (e) {

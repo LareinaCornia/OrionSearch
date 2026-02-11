@@ -17,12 +17,11 @@ function createRPC(func) {
   // add g to endpoint
   globalThis.toLocal = globalThis.toLocal || new Map();
   const remotePtr = crypto.createHash('sha256').update(crypto.randomBytes(32)).digest('hex');
-  const asyncFunc = toAsync(func);
-  globalThis.toLocal.set(remotePtr, asyncFunc);
+  globalThis.toLocal.set(remotePtr, func);
 
   // create function stub
   function stub(/** @type {any[]} */ ...args) {
-    const callback = args.pop(); 
+    const callback = args.pop();
     if (typeof callback !== 'function') {
       throw new Error('RPC requires callback as last argument');
     }
@@ -39,7 +38,7 @@ function createRPC(func) {
     distribution.local.comm.send(
       [remotePtr, args],
       remote,
-      callback 
+      callback
     );
   }
 
