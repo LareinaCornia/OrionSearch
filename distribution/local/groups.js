@@ -5,12 +5,23 @@
  * @typedef {import("../types.js").Node} Node
  */
 
+const id = distribution.util.id;
+
+const groupMap = new Map();
+
+const localNode = distribution.node.config;
+const localSid = id.getSID(localNode);
+groupMap.set("all", {[localSid]: localNode});
+
 /**
  * @param {string} name
  * @param {Callback} callback
  */
 function get(name, callback) {
-  return callback(new Error('groups.get not implemented'));
+  if (!groupMap.has(name))
+    return callback(new Error('unknown GID'), null);
+
+  callback(null, groupMap.get(name));
 }
 
 /**
@@ -19,7 +30,18 @@ function get(name, callback) {
  * @param {Callback} callback
  */
 function put(config, group, callback) {
-  return callback(new Error('groups.put not implemented'));
+  const gid = typeof config === "string" ? config : config.gid;
+
+  groupMap.set(gid, group);
+  
+  const all = groupMap.get("all");
+  for (const sid in group) {
+    all[sid] = group[sid];
+  }
+
+  distribution[gid] = {};
+
+  callback(null, group);
 }
 
 /**
@@ -27,7 +49,15 @@ function put(config, group, callback) {
  * @param {Callback} callback
  */
 function del(name, callback) {
-  return callback(new Error('groups.del not implemented'));
+  if (!groupMap.has(name))
+    return callback(new Error('unkown GID'), null);
+
+  const old = groupMap.get(name);
+  groupMap.delete(name);
+
+  delete distribution[name];
+
+  callback(null, old);
 }
 
 /**
@@ -36,7 +66,16 @@ function del(name, callback) {
  * @param {Callback} callback
  */
 function add(name, node, callback) {
-  return callback(new Error('groups.add not implemented'));
+  if (!groupMap.has(name))
+    return callback && callback(new Error('unkown GID'), null);
+
+  const sid = id.getSID(node);
+  const group = groupMap.get(name);
+  group[sid] = node;
+
+  groupMap.get("all")[sid] = node;
+
+  callback && callback(null, group);
 };
 
 /**
@@ -45,7 +84,13 @@ function add(name, node, callback) {
  * @param {Callback} callback
  */
 function rem(name, node, callback) {
-  return callback(new Error('groups.rem not implemented'));
-};
+  if (!groupMap.has(name))
+    return callback && callback(new Error('unkown GID'), null);
+
+  const group = groupMap.get(name);
+
+  delete group[node];
+  callback && callback(null, null);
+}
 
 module.exports = {get, put, del, add, rem};
