@@ -106,6 +106,7 @@ function start(callback) {
       return;
     }
 
+    const gid = parts[0];
     const service = parts[1];
     const method = parts[2];
 
@@ -157,7 +158,7 @@ function start(callback) {
       }
 
       globalThis.distribution.local.routes.get(
-        service,
+        {service, gid},
         (err, service) => {
           if (err || !service || typeof service[method] !== 'function') {
             res.writeHead(404);

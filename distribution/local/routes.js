@@ -14,16 +14,32 @@ function get(configuration, callback) {
   try {
     const config = Array.isArray(configuration) ? configuration[0] : configuration;
 
-    const name =
-      typeof config === "string"
-        ? config
-        : config?.service;
+    const serviceName = typeof config === "string" ? config : config?.service;
 
-    if (!name || !(name in table)) {
+    if (!serviceName || !(serviceName in table)) {
       return callback(new Error("Service does not exist"), null);
     }
 
-    return callback(null, table[name]);
+    const gid = typeof config === "string" ? null : config?.gid || 'local';
+    if (gid === "local") {
+      if (!(serviceName in table))
+        return callback(new Error("Service does not exist"), null);
+
+      return callback(null, table[serviceName]);
+    }
+
+    if (!globalThis.distribution[gid])
+      return callback(new Error("Unknown GID"), null);
+
+    const groupRoutes = globalThis.distribution[gid].routes;
+
+    if (!groupRoutes)
+      return callback(new Error("Group routes not initialized"), null);
+
+    if (!(serviceName in groupRoutes.table))
+      return callback(new Error("Service does not exist"), null);
+
+    return callback(null, groupRoutes.table[serviceName]);
 
   } catch (err) {
     return callback(err, null);
