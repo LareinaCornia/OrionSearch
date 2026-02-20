@@ -23,6 +23,7 @@
  * @property {(intervalID: NodeJS.Timeout, callback: Callback) => void} del
  */
 
+const distribution = globalThis.distribution;
 
 /**
  * @param {Config} config
@@ -41,7 +42,55 @@ function gossip(config) {
    * @param {Callback} callback
    */
   function send(payload, remote, callback) {
-    return callback(new Error('gossip.send not implemented'));
+    distribution.local.groups.get(context.gid, (err, group) => {
+      if (err) 
+        return callback(err, null);
+
+      const newPayload = payload.mid
+        ? payload   // repost
+        : {
+            remote: remote,
+            message: payload,
+            mid: distribution.util.id.getMID(payload),
+            gid: context.gid,
+          };
+
+      const sids = Object.keys(group);
+      const nodes = Object.values(group);
+
+      if (nodes.length === 0)
+        return callback(new Error("Empty group"), null);
+
+      const k = context.subset(sids);
+      const shuffled = [...sids ].sort(() => Math.random() - 0.5);
+      const chosen = shuffled.slice(0, k);
+
+      /** @type {{[sid: string]: any}} */
+      const values = {};
+      /** @type {{ [x: string]: Error }} */
+      const errors = {};
+
+      let pending = chosen.length;
+      chosen.forEach((sid) => {
+        const node = group[sid];
+        globalThis.distribution.local.comm.send(
+          [
+            newPayload,
+          ],
+          {
+            service: 'gossip',
+            method: 'recv',
+            node,
+          },
+          (e, v) => {
+            e ? errors[sid] = e : values[sid] = v;
+            pending--;
+            if (pending === 0)
+              callback(errors, values);
+          }
+        );
+      });
+    });
   }
 
   /**

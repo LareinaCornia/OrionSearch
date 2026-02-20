@@ -47,6 +47,7 @@ function put(config, group, callback) {
     routes: allServices.routes({ gid }),
     mem:    allServices.mem({ gid }),
     store:  allServices.store({ gid }),
+    gossip: allServices.gossip({ gid }),
   };
 
   callback(null, group);
