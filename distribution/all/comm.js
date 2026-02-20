@@ -50,9 +50,8 @@ function comm(config) {
 
       nodes.forEach((node, index) => {
         const sid = sids[index];
-        const safeMessage = Array.isArray(message) ? [...message] : message;
         globalThis.distribution.local.comm.send(
-          safeMessage,
+          message,
           {
             service: configuration.service,
             method: configuration.method,

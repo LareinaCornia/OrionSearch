@@ -95,6 +95,12 @@ function spawn(configuration, callback) {
   
   const entry = path.resolve(__dirname, "../../distribution.js");
   fork(entry, [ "--config", util.serialize(newConfig) ]);
+  
+  globalThis.distribution.local.groups.add(
+    "all",
+    { ip: configuration.ip, port: configuration.port },
+    () => {}
+  );
 }
 
 /**

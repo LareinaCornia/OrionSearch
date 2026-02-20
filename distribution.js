@@ -37,7 +37,7 @@ function bootstrap(config) {
   // distribution.local.routes = distributionLib.local.routes;
   // distribution.local.status.spawn = distributionLib.local.status.spawn;
   // distribution.local.status.stop = distributionLib.local.status.stop;
-  distribution.local.comm = distributionLib.local.comm;
+  // distribution.local.comm = distributionLib.local.comm;
   // distribution.node.start = distributionLib.node.start;
   // __end_M3_solution__ */
 

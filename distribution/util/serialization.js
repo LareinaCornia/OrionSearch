@@ -76,16 +76,15 @@ function resolveNative(desc) {
   return base;
 }
 
-// cycle helpers
-let nextId = 1;
-const seenSerialize = new WeakMap();
-const seenDeserialize = new Map();
-
 /**
  * @param {any} object
  * @returns {string}
  */
 function serialize(object) {
+  // cycle helpers
+  let nextId = 1;
+  const seenSerialize = new WeakMap();
+
   // null
   if (object === null) {
     return JSON.stringify({ type: 'null', value: null });
@@ -198,6 +197,8 @@ function serialize(object) {
  * @returns {any}
  */
 function deserialize(input) {
+  const seenDeserialize = new Map();
+  
   if (typeof input !== 'string') {
     throw new SyntaxError('Malformed serialized string');
   }
