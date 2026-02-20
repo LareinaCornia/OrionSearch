@@ -10,6 +10,8 @@
  * @property {(callback: Callback) => void} stop
  */
 
+const localSid = globalThis.distribution.util.id.getSID(globalThis.distribution.node.config);
+
 /**
  * @param {Config} config
  * @returns {Status}
@@ -23,7 +25,14 @@ function status(config) {
    * @param {Callback} callback
    */
   function get(configuration, callback) {
-    callback(new Error('status.get not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [configuration],
+      { 
+        service: "status", 
+        method: "get" 
+      },
+      callback
+    );
   }
 
   /**
@@ -31,14 +40,59 @@ function status(config) {
    * @param {Callback} callback
    */
   function spawn(configuration, callback) {
-    callback(new Error('status.spawn not implemented')); // If you won't implement this, check the skip.sh script.
+    globalThis.distribution.local.status.spawn(configuration, (err) => {
+      if (err) return 
+        callback(err);
+
+      globalThis.distribution[context.gid].comm.send(
+        [ context.gid, configuration ],
+        { service: "groups", method: "add" },
+        callback
+      );
+    });
   }
 
   /**
    * @param {Callback} callback
    */
   function stop(callback) {
-    callback(new Error('status.stop not implemented')); // If you won't implement this, check the skip.sh script.
+    globalThis.distribution.local.groups.get(context.gid, (err, group) => {
+      if (err) 
+        return callback(err);
+
+      /** @type {{[sid: string]: any}} */
+      const values = {};
+      /** @type {{[sid: string]: Error}} */
+      const errors = {};
+
+      const sids = Object.keys(group).filter(
+        sid => sid !== localSid 
+      );
+
+      if (sids.length === 0)
+        return callback(null, {});
+
+      let pending = sids.length;
+      sids.forEach((sid) => {
+        const node = group[sid];
+
+        globalThis.distribution.local.comm.send(
+          [],
+          { node, service: "status", method: "stop" },
+          (e, v) => {
+            e ? errors[sid] = e : values[sid] = v;
+
+            pending--;
+            if (pending === 0) {
+              callback(
+                Object.keys(errors).length ? errors : null,
+                values
+              );
+            }
+          }
+        );
+      });
+    });
   }
 
   return {get, stop, spawn};

@@ -50,7 +50,7 @@ function send(message, remote, callback) {
 
     const gid = remote.gid || 'local';
     const path = `/${gid}/${service}/${method}`;
-
+    
     const payload = globalThis.distribution.util.serialize(message);
 
     const options = {
@@ -81,13 +81,7 @@ function send(message, remote, callback) {
 
       res.on('end', () => {
         try {
-          const decoded = globalThis.distribution.util.deserialize(data);
-
-          if (!Array.isArray(decoded) || decoded.length != 2)
-            return callback(new Error('Invalid response'), null);
-
-          const [err, value] = decoded;
-
+          const [ err, value ] = globalThis.distribution.util.deserialize(data);
           return callback(err || null, value ?? null);
 
         } catch (e) {

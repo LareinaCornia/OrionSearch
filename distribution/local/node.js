@@ -145,11 +145,9 @@ function start(callback) {
 
       try {
         const raw = Buffer.concat(body).toString();
-
-        if (raw.length >= 0) {
+        if (raw.length >= 0)
           args = util.deserialize(raw);
-        }
-
+        
       } catch (error) {
         res.writeHead(400);
         res.end(util.serialize([new Error('Invalid Serialization'), null]));

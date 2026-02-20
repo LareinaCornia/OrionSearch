@@ -5,11 +5,12 @@
  * @typedef {import("../types.js").Node} Node
  */
 
-const id = distribution.util.id;
+const id = globalThis.distribution.util.id;
+const allServices = require('../all/all.js');
 
 const groupMap = new Map();
 
-const localNode = distribution.node.config;
+const localNode = globalThis.distribution.node.config;
 const localSid = id.getSID(localNode);
 groupMap.set("all", {[localSid]: localNode});
 
@@ -39,7 +40,14 @@ function put(config, group, callback) {
     all[sid] = group[sid];
   }
 
-  distribution[gid] = {};
+  globalThis.distribution[gid] = {
+    status: allServices.status({ gid }),
+    comm:   allServices.comm({ gid }),
+    groups: allServices.groups({ gid }),
+    routes: allServices.routes({ gid }),
+    mem:    allServices.mem({ gid }),
+    store:  allServices.store({ gid }),
+  };
 
   callback(null, group);
 }
@@ -55,7 +63,7 @@ function del(name, callback) {
   const old = groupMap.get(name);
   groupMap.delete(name);
 
-  delete distribution[name];
+  delete globalThis.distribution[name];
 
   callback(null, old);
 }

@@ -29,7 +29,46 @@ function comm(config) {
    * @param {Callback} callback
    */
   function send(message, configuration, callback) {
-    callback(new Error('comm.send not implemented'));
+    const gid = context.gid;
+
+    globalThis.distribution.local.groups.get(gid, (err, group) => {
+      if (err) 
+        return callback(err, null);
+
+      const sids = Object.keys(group);
+      const nodes = Object.values(group);
+
+      if (nodes.length === 0)
+        return callback(new Error("Empty group"), null);
+
+      /** @type {{[sid: string]: any}} */
+      const values = {};
+      /** @type {{ [x: string]: Error }} */
+      const errors = {};
+      
+      let pending = nodes.length;
+
+      nodes.forEach((node, index) => {
+        const sid = sids[index];
+        const safeMessage = Array.isArray(message) ? [...message] : message;
+        globalThis.distribution.local.comm.send(
+          safeMessage,
+          {
+            service: configuration.service,
+            method: configuration.method,
+            node,
+          },
+          (e, v) => {
+            e ? errors[sid] = e : values[sid] = v;
+            
+            pending--;
+            if (pending === 0) {
+              callback(errors, values);
+            }
+          } 
+        );
+      });
+    });
   }
 
   return {send};

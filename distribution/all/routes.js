@@ -22,7 +22,11 @@ function routes(config) {
    * @param {Callback} callback
    */
   function put(service, name, callback) {
-    return callback(new Error('routes.put not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [service, name],
+      { service: "routes", method: "put" },
+      callback
+    );
   }
 
   /**
@@ -30,7 +34,11 @@ function routes(config) {
    * @param {Callback} callback
    */
   function rem(configuration, callback) {
-    return callback(new Error('routes.rem not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [configuration],
+      { service: "routes", method: "rem" },
+      callback
+    );
   }
 
   return {put, rem};

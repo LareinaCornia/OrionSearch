@@ -25,7 +25,11 @@ function groups(config) {
    * @param {Callback} callback
    */
   function put(config, group, callback) {
-    return callback(new Error('groups.put not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [config, group],
+      { service: "groups", method: "put" },
+      callback
+    );
   }
 
   /**
@@ -33,7 +37,11 @@ function groups(config) {
    * @param {Callback} callback
    */
   function del(name, callback) {
-    return callback(new Error('groups.del not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [name],
+      { service: "groups", method: "del" },
+      callback
+    );
   }
 
   /**
@@ -41,7 +49,11 @@ function groups(config) {
    * @param {Callback} callback
    */
   function get(name, callback) {
-    return callback(new Error('groups.get not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [name],
+      { service: "groups", method: "get" },
+      callback
+    );
   }
 
   /**
@@ -50,7 +62,11 @@ function groups(config) {
    * @param {Callback} callback
    */
   function add(name, node, callback) {
-    return callback(new Error('groups.add not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [name, node],
+      { service: "groups", method: "add" },
+      callback
+    );
   }
 
   /**
@@ -59,7 +75,11 @@ function groups(config) {
    * @param {Callback} callback
    */
   function rem(name, node, callback) {
-    return callback(new Error('groups.rem not implemented'));
+    globalThis.distribution[context.gid].comm.send(
+      [name, node],
+      { service: "groups", method: "rem" },
+      callback
+    );
   }
 
   return {

@@ -13,34 +13,28 @@ const table = Object.create(null);
 function get(configuration, callback) {
   try {
     const config = Array.isArray(configuration) ? configuration[0] : configuration;
-
     const serviceName = typeof config === "string" ? config : config?.service;
-
-    if (!serviceName || !(serviceName in table)) {
-      return callback(new Error("Service does not exist"), null);
-    }
-
     const gid = typeof config === "string" ? null : config?.gid || 'local';
-    if (gid === "local") {
-      if (!(serviceName in table))
+
+    // group service
+    if (gid && gid !== "local") {
+      const group = globalThis.distribution[gid];
+
+      if (!group)
+        return callback(new Error("Unknown GID"), null);
+
+      const service = group[serviceName];
+
+      if (!service)
         return callback(new Error("Service does not exist"), null);
 
-      return callback(null, table[serviceName]);
+      return callback(null, service);
     }
 
-    if (!globalThis.distribution[gid])
-      return callback(new Error("Unknown GID"), null);
-
-    const groupRoutes = globalThis.distribution[gid].routes;
-
-    if (!groupRoutes)
-      return callback(new Error("Group routes not initialized"), null);
-
-    if (!(serviceName in groupRoutes.table))
+    // local service
+    if (!serviceName || !(serviceName in table))
       return callback(new Error("Service does not exist"), null);
-
-    return callback(null, groupRoutes.table[serviceName]);
-
+    return callback(null, table[serviceName]);
   } catch (err) {
     return callback(err, null);
   }
