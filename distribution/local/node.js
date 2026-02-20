@@ -5,7 +5,6 @@
  */
 const http = require('node:http');
 const url = require('node:url');
-const log = require('../util/log.js');
 
 const yargs = require('yargs/yargs');
 
@@ -76,7 +75,7 @@ function setNodeConfig() {
 
 
 /**
- * @param {(err?: Error | null) => void} callback
+ * @param {(err?: Error | null, value?: any) => void} callback
  * @returns {void}
  */
 function start(callback) {
@@ -196,11 +195,11 @@ function start(callback) {
   const config = globalThis.distribution.node.config;
 
   server.once('listening', () => {
-    callback(null);
+    callback(null, null);
   });
 
   server.once('error', (error) => {
-    callback(error);
+    callback(error, null);
   });
 
   server.listen(config.port, config.ip);

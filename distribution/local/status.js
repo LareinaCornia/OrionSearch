@@ -58,7 +58,9 @@ function spawn(configuration, callback) {
   if (!configuration || typeof configuration !== "object")
     return callback(new Error("Invalid configuration"), null);
 
-  if (typeof configuration.ip !== "string" || typeof configuration.port !== "number")
+  if (typeof configuration.ip !== "string" || 
+      typeof configuration.port !== "number" ||
+      configuration.port <= 0)
     return callback(new Error("Invalid node fields"), null);
 
   if (typeof callback !== "function")
@@ -90,20 +92,9 @@ function spawn(configuration, callback) {
     ...configuration,
     onStart: composedOnStart
   };
-
-  // console.log('onStart: \n', util.serialize(newConfig.onStart));
   
   const entry = path.resolve(__dirname, "../../distribution.js");
-  const child = fork(entry, [
-    "--config", util.serialize(newConfig)
-  ]);
-  
-  child.on("exit", (code) => {
-    console.log("CHILD EXITED:", code);
-  });
-  child.on("error", (err) => {
-    console.log("CHILD ERROR:", err);
-  });
+  fork(entry, [ "--config", util.serialize(newConfig) ]);
 }
 
 /**
