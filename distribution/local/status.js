@@ -4,6 +4,10 @@
  * @typedef {import("../types.js").Node} Node
  */
 
+const { fork } = require("node:child_process");
+const path = require("node:path");
+const util = require("../util/util.js"); 
+
 let counts = 0;
 
 /**
@@ -14,10 +18,6 @@ function get(configuration, callback) {
   counts++;
 
   const key = Array.isArray(configuration) ? configuration[0] : configuration;
-
-  const distribution = globalThis.distribution;
-  if (!distribution) 
-    return callback(new Error('Distribution missing'), null);
 
   const node = distribution?.node?.config;
   const id = distribution.util.id;
@@ -32,16 +32,14 @@ function get(configuration, callback) {
 
   if (key === "counts")
     return callback(null, counts);
-
+  
   switch (key) {
     case "nid":
       const nid = id.getNID(node);
       return callback(null, nid ?? null);
-      // return callback(null, id.getNID(node));
     case "sid":
       const sid = id.getSID(node);
       return callback(null, sid ?? null);
-      // return callback(null, id.getSID(node));
     case "ip":
       return callback(null, node.ip);
     case "port":
@@ -57,28 +55,73 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function spawn(configuration, callback) {
-  const distribution = globalThis.distribution;
+  if (!configuration || typeof configuration !== "object")
+    return callback(new Error("Invalid configuration"), null);
 
-  if (!distribution || !distribution.node) {
-    return callback(new Error("Distribution not initialized"), null);
-  }
+  if (typeof configuration.ip !== "string" || typeof configuration.port !== "number")
+    return callback(new Error("Invalid node fields"), null);
 
-  distribution.node.config = configuration;
+  if (typeof callback !== "function")
+    throw new Error("Callback required");
 
-  callback(null, null);
+  const userOnStart = configuration.onStart;
+  const rpcCallback = distribution.util.wire.createRPC(callback);
+
+  const userSource = "(" + String(userOnStart) + ")";
+  const rpcSource = "(" + String(rpcCallback) + ")";
+
+
+  const composedOnStart = new Function(
+    "e",
+    "v",
+    `
+      const __user = ${userSource};
+      const __rpc = ${rpcSource};
+
+      if (typeof __user === "function") {
+        __user(e, v);
+      }
+
+      __rpc(e, v, function(){});
+    `
+  );
+
+  const newConfig = {
+    ...configuration,
+    onStart: composedOnStart
+  };
+
+  // console.log('onStart: \n', util.serialize(newConfig.onStart));
+  
+  const entry = path.resolve(__dirname, "../../distribution.js");
+  const child = fork(entry, [
+    "--config", util.serialize(newConfig)
+  ]);
+  
+  child.on("exit", (code) => {
+    console.log("CHILD EXITED:", code);
+  });
+  child.on("error", (err) => {
+    console.log("CHILD ERROR:", err);
+  });
 }
 
 /**
  * @param {Callback} callback
  */
 function stop(callback) {
-  const distribution = globalThis.distribution;
+  callback(null, "Node stopping");
 
-  if (distribution && distribution.node) {
-    distribution.node.config = null;
-  }
-
-  callback(null, null);
+  setTimeout(() => {
+    const server = globalThis.distribution.node.server;
+    if (server) {
+      server.close(() => {
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  }, 10);
 }
 
 module.exports = {get, spawn, stop};

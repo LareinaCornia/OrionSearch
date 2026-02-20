@@ -7,52 +7,44 @@
 
 const distribution = globalThis.distribution;
 
-const log = require('../util/log.js');
+const { serialize, deserialize } = require('../util/serialization.js');
 const crypto = require('node:crypto');
 
 /**
  * @param {Function} func
  */
 function createRPC(func) {
-  // add g to endpoint
   globalThis.toLocal = globalThis.toLocal || new Map();
   const remotePtr = crypto.createHash('sha256').update(crypto.randomBytes(32)).digest('hex');
   globalThis.toLocal.set(remotePtr, func);
 
-  // create function stub
   function stub(/** @type {any[]} */ ...args) {
     const callback = args.pop();
     if (typeof callback !== 'function') {
       throw new Error('RPC requires callback as last argument');
     }
 
-    /** @type {any} */
-    let node = distribution.node.config;
-    
     const remote = {
       service: '__system__rpcService',
       method: 'call',
-      node: node,
+      node: "__NODE_INFO__"
     };
 
     distribution.local.comm.send(
-      [remotePtr, args],
+      ["__RPC_PTR__", args],
       remote,
       callback
     );
   }
 
-  const originalSrc = stub.toString.bind(stub);
-  stub.toString = () => {
-    let src = originalSrc();
-    src = src.replace(
-      JSON.stringify(distribution.node.config),
-      JSON.stringify(distribution.node.config)
-    );
-    return src;
-  };
+  let src = stub.toString();
 
-  return stub;
+  src = src
+    .replace('"__NODE_INFO__"', JSON.stringify(globalThis.distribution.node.config))
+    .replace('"__RPC_PTR__"', JSON.stringify(remotePtr));
+
+  const newStub = eval(`(${src})`);
+  return newStub;
 }
 
 /**
