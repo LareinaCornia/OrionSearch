@@ -31,7 +31,24 @@ function status(config) {
         service: "status", 
         method: "get" 
       },
-      callback
+      (errors, values) => {
+        if (errors && Object.keys(errors).length > 0) {
+          return callback(errors, null);
+        }
+
+        if (configuration === "sid" || configuration === "nid") {
+          return callback({}, Object.values(values));
+        }
+
+        if (configuration === "heapTotal" || configuration === "heapUsed") {
+          const sum = Object.values(values).reduce(
+            (acc, v) => acc + v,
+            0
+          );
+          return callback({}, sum);
+        }
+        return callback({}, values);
+      }
     );
   }
 
