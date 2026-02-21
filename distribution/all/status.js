@@ -33,18 +33,18 @@ function status(config) {
       },
       (errors, values) => {
         if (errors && Object.keys(errors).length > 0) {
-          return callback(errors, null);
+          return callback(errors, {});
         }
+
+        if (!values) 
+          return callback({}, {});
 
         if (configuration === "sid" || configuration === "nid") {
           return callback({}, Object.values(values));
         }
 
         if (configuration === "heapTotal" || configuration === "heapUsed") {
-          const sum = Object.values(values).reduce(
-            (acc, v) => acc + v,
-            0
-          );
+          const sum = Object.values(values).reduce((a, b) => a + b, 0);
           return callback({}, sum);
         }
         return callback({}, values);
