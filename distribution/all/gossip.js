@@ -99,7 +99,21 @@ function gossip(config) {
    * @param {Callback} callback
    */
   function at(period, func, callback) {
-    return callback(new Error('gossip.at not implemented'));
+    if (typeof period !== "number" || period <= 0)
+      return callback(new Error("Invalid period"), null);
+
+    if (typeof func !== "function")
+      return callback(new Error("Invalid function"), null);
+
+    const intervalID = setInterval(() => {
+      try {
+        func();
+      } catch (err) {
+        console.error("gossip.at execution error:", err);
+      }
+    }, period);
+
+    callback(null, intervalID);
   }
 
   /**
@@ -107,7 +121,11 @@ function gossip(config) {
    * @param {Callback} callback
    */
   function del(intervalID, callback) {
-    return callback(new Error('gossip.del not implemented'));
+    if (!intervalID)
+      return callback(new Error("Invalid intervalID"));
+
+    clearInterval(intervalID);
+    callback(null, "stopped");
   }
 
   return {send, at, del};

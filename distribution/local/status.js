@@ -107,18 +107,21 @@ function spawn(configuration, callback) {
  * @param {Callback} callback
  */
 function stop(callback) {
-  callback(null, "Node stopping");
+  const node = globalThis.distribution.node.config;
+  const server = globalThis.distribution.node.server;
+
+  callback(null, node);
+
+  if (server) {
+    server.close();
+
+    if (typeof server.closeAllConnections === 'function')
+      server.closeAllConnections();
+  }
 
   setTimeout(() => {
-    const server = globalThis.distribution.node.server;
-    if (server) {
-      server.close(() => {
-        process.exit(0);
-      });
-    } else {
-      process.exit(0);
-    }
-  }, 10);
+    process.exit(0);
+  }, 100);
 }
 
 module.exports = {get, spawn, stop};

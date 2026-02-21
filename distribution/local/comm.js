@@ -83,7 +83,6 @@ function send(message, remote, callback) {
         try {
           const [ err, value ] = globalThis.distribution.util.deserialize(data);
           return callback(err || null, value ?? null);
-
         } catch (e) {
           return callback(e, null);
         }
@@ -91,7 +90,8 @@ function send(message, remote, callback) {
     });
 
     req.on('error', (err) => {
-      callback(err, null);
+      const errorToReturn = new Error(err.message);
+      callback(errorToReturn, null);
     });
 
     req.write(payload);
