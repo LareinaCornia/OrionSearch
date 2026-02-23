@@ -1,3 +1,9 @@
+// @ts-check
+/**
+ * @typedef {import("../types.js").Callback} Callback
+ */
+
+const map = new Map();
 
 /**
  * @param {any} state
@@ -5,7 +11,14 @@
  * @param {Callback} callback
  */
 function put(state, configuration, callback) {
-  return callback(new Error('mem.put not implemented'));
+  if (configuration != null && typeof configuration != 'string')
+    return callback(new Error('invalid string'), null);
+
+  if (configuration == null) 
+    configuration = globalThis.distribution.util.id.getID(state);
+  
+  map.set(configuration, state);
+  return callback(null, state);
 };
 
 /**
@@ -22,7 +35,13 @@ function append(state, configuration, callback) {
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  return callback(new Error('mem.get not implemented'));
+  if (typeof configuration !== 'string')
+    return callback(new Error('invalid key'), null);
+  
+  if (!map.has(configuration))
+    return callback(new Error('key not found'), null);
+
+  return callback(null, map.get(configuration));
 }
 
 /**
@@ -30,7 +49,15 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function del(configuration, callback) {
-  return callback(new Error('mem.del not implemented'));
+  if (typeof configuration !== 'string')
+      return callback(new Error('invalid key'), null);
+
+    if (!map.has(configuration))
+      return callback(new Error('key not found'), null);
+
+    const value = map.get(configuration);
+    map.delete(configuration);
+    return callback(null, value);
 };
 
 module.exports = {put, get, del, append};
