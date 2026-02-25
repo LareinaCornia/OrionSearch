@@ -59,15 +59,42 @@ function mem(config) {
       if (e) 
         callback(e, null);
 
-      if (key == null) 
-        return callback(new Error('invalid key'), null);
-
       distribution.local.groups.get(context.gid, (e, group) => {
         if (e) return callback(e, null);
 
         const nodes = Object.values(group || {});
         if (nodes.length === 0) 
           return callback(new Error('Empty group'), null);
+
+        if (key === null) {
+          let pending = nodes.length;
+
+          /** @type {{ [x: string]: Error }} */
+          const errors = {};
+          const result = new Set();
+
+          nodes.forEach((node) => {
+            const sid = distribution.util.id.getSID(node);
+            globalThis.distribution.local.comm.send(
+              [ null ],
+              {
+                service: 'mem',
+                method: 'get',
+                node
+              },
+              (err, keys) => {
+                if (err)
+                  errors[sid] = err;
+                else if (Array.isArray(keys))
+                  keys.forEach(k => result.add(k));
+
+                pending--;
+                if (pending === 0)
+                  return callback(errors, Array.from(result));
+              }
+            );
+          });
+        }
 
         const kid = distribution.util.id.getID(key);
         const nidToNode = new Map(nodes.map(node => [distribution.util.id.getNID(node), node]));
