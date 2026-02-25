@@ -75,12 +75,27 @@ function put(state, configuration, callback) {
  * @param {Callback} callback
  */
 function get(configuration, callback) {
+  if (configuration === null) {
+    const gid = 'local'; 
+    const dirPath = path.join(STORE_DIR, gid);
+
+    return fs.readdir(dirPath, (err, files) => {
+      if (err) {
+        if (err.code === 'ENOENT')
+          return callback(null, []);
+        return callback(err, null);
+      }
+      return callback(null, files);
+    });
+  }
+
   const { key, gid, error } = extract(configuration);
-  if (error || key == null)
+  
+  if (error)
     return callback(new Error('invalid key'), null);
 
   const filePath = path.join(STORE_DIR, gid, key);
-
+  
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) 
       return callback(new Error('key not found'), null);
