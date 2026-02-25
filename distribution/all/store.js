@@ -198,11 +198,121 @@ function store(config) {
   }
 
   /**
-   * @param {Object.<string, Node>} configuration
-   * @param {Callback} callback
-   */
+ * @param {Object.<string, Node>} configuration
+ * @param {Callback} callback
+ */
   function reconf(configuration, callback) {
-    return callback(new Error('store.reconf not implemented'));
+    const oldGroup = configuration || {};
+    const oldNodes = Object.values(oldGroup);
+
+    distribution.local.groups.get(context.gid, (e, newGroup) => {
+      if (e && Object.keys(e).length > 0) {
+        return callback(e, null);
+      }
+
+      const ng = newGroup || {};
+      const newNodes = Object.values(ng);
+      const newNids = newNodes.map((node) => distribution.util.id.getNID(node));
+      const newNidToNode = new Map(
+        newNodes.map((node) => [distribution.util.id.getNID(node), node]),
+      );
+
+      let allEntries = [];
+      let pendingScan = oldNodes.length;
+
+      if (pendingScan === 0) return callback(null, []);
+
+      oldNodes.forEach((node) => {
+        distribution.local.comm.send(
+            [{gid: context.gid, key: null}],
+            {service: 'store', method: 'get', node},
+            (err, keys) => {
+              if (!err && Array.isArray(keys)) {
+                keys.forEach((k) => allEntries.push({key: k, from: node}));
+              }
+              pendingScan--;
+              if (pendingScan === 0) process(allEntries);
+            },
+        );
+      });
+
+      function process(entries) {
+        const moves = [];
+        const uniqueKeys = new Map();
+
+        entries.forEach(({key, from}) => {
+          if (!uniqueKeys.has(key)) {
+            uniqueKeys.set(key, from);
+          }
+        });
+
+        uniqueKeys.forEach((from, key) => {
+          const kid = distribution.util.id.getID(key);
+          const newNid = context.hash(kid, newNids);
+          const to = newNidToNode.get(newNid);
+
+          if (!to) return;
+
+          const fromNid = distribution.util.id.getNID(from);
+          const toNid = distribution.util.id.getNID(to);
+
+          if (fromNid !== toNid) {
+            moves.push({key, from, to});
+          }
+        });
+
+        if (moves.length === 0) return callback(null, []);
+
+        let pendingMove = moves.length;
+        const movedKeys = [];
+        let finished = false;
+
+        moves.forEach(({key, from, to}) => {
+          distribution.local.comm.send(
+              [{gid: context.gid, key}],
+              {service: 'store', method: 'get', node: from},
+              (err1, value) => {
+                if (finished) return;
+                if (err1) {
+                  finished = true;
+                  return callback(err1, null);
+                }
+
+                distribution.local.comm.send(
+                    [{gid: context.gid, key}],
+                    {service: 'store', method: 'del', node: from},
+                    (err2) => {
+                      if (finished) return;
+                      if (err2 && err2.message !== 'key not found') {
+                        finished = true;
+                        return callback(err2, null);
+                      }
+
+                      distribution.local.comm.send(
+                          [value, {gid: context.gid, key}],
+                          {service: 'store', method: 'put', node: to},
+                          (err3) => {
+                            if (finished) return;
+                            if (err3) {
+                              finished = true;
+                              return callback(err3, null);
+                            }
+
+                            movedKeys.push(key);
+                            pendingMove--;
+                            if (pendingMove === 0) {
+                              finished = true;
+                              callback(null, movedKeys);
+                            }
+                          },
+                      );
+                    },
+                );
+              },
+          );
+        });
+      }
+    });
   }
 
   /* For the distributed store service, the configuration will
