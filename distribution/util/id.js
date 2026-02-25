@@ -72,10 +72,46 @@ const naiveHash = (kid, nids) => {
 
 /** @type { Hasher } */
 const consistentHash = (kid, nids) => {
+  if (!Array.isArray(nids) || nids.length === 0)
+    throw new Error("Empty nids");
+
+  const ring = nids
+    .map((id) => ({ id, num: idToNum(id) }))
+    .slice()
+    .sort((a, b) => (a.num < b.num ? -1 : a.num > b.num ? 1 : 0));
+
+  const kidNum = idToNum(kid);
+
+  let lo = 0, hi = ring.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (ring[mid].num < kidNum) 
+      lo = mid + 1;
+    else 
+      hi = mid;
+  }
+  return ring[lo % ring.length].id;
 };
 
 /** @type { Hasher } */
 const rendezvousHash = (kid, nids) => {
+  if (!Array.isArray(nids) || nids.length === 0)
+    throw new Error("Empty nids");
+
+  let bestNid = nids[0];
+  let bestScore = idToNum(getID(kid + bestNid));
+
+  for (let i = 1; i < nids.length; i++) {
+    const nid = nids[i];
+    const score = idToNum(getID(kid + nid));
+
+    if (score > bestScore || (score === bestScore && nid < bestNid)) {
+      bestScore = score;
+      bestNid = nid;
+    }
+  }
+
+  return bestNid;
 };
 
 module.exports = {
