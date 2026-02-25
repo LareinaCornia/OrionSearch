@@ -38,12 +38,13 @@ function append(state, configuration, callback) {
  */
 function get(configuration, callback) {
   let key;
-  if (typeof configuration === 'string')
+  if (typeof configuration === 'string' || configuration === null)
     key = configuration;
   else if (typeof configuration === 'object' && configuration.key)
     key = configuration.key;
-  else
-    return callback(new Error('invalid key'), null);
+
+  if (key === null)
+    return callback(null, Array.from(map.keys()));
   
   if (!map.has(key))
     return callback(new Error('key not found'), null);
