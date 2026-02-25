@@ -32,13 +32,13 @@ function store(config) {
    * @param {SimpleConfig} configuration
    */
   function extractKey(configuration) {
-    if (configuration == null) 
+    if (configuration === null) 
       return null;
 
     if (typeof configuration === 'string')
       return configuration;
 
-    if (typeof configuration === 'object' && typeof configuration.key === 'string')
+    if (typeof configuration === 'object')
       return configuration.key;
 
     return undefined;
@@ -75,7 +75,47 @@ function store(config) {
   function get(configuration, callback) {
     const key = extractKey(configuration);
 
-    if (key === undefined || key === null)
+    if (key === null) {
+      distribution.local.groups.get(context.gid, (e, group) => {
+        if (e) 
+          return callback(e, null);
+
+        const nodes = Object.values(group || {});
+        if (nodes.length === 0)
+          return callback(new Error('Empty group'), null);
+
+        let pending = nodes.length;
+
+        /** @type {{ [x: string]: Error }} */
+        const errors = {};
+        const allKeys = new Set();
+
+        nodes.forEach((node) => {
+          const sid = distribution.util.id.getSID(node);
+          distribution.local.comm.send(
+            [ { gid: context.gid, key: null } ],
+            {
+              node,
+              service: 'store',
+              method: 'get'
+            },
+            (err, keys) => {
+              if (err)
+                errors[sid] = err;
+              else if (Array.isArray(keys))
+                keys.forEach(k => allKeys.add(k));
+
+              pending--;
+              if (pending === 0)
+                return callback(errors, Array.from(allKeys));
+            }
+          );
+        });
+      });
+      return;
+    }
+
+    if (key === undefined)
       return callback(new Error('invalid key'), null);
 
     pickNode(key, (e, node) => {
