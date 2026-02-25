@@ -1,6 +1,8 @@
 // @ts-check
 /**
  * @typedef {import("../types.js").Callback} Callback
+ * @typedef {Object} StoreConfig
+ * @typedef {StoreConfig | string | null} SimpleConfig
  */
 
 const map = new Map();
