@@ -57,10 +57,11 @@ function mem(config) {
   function get(configuration, callback) {
     extractKey(configuration, (e, key) => {
       if (e) 
-        callback(e, null);
+        return callback(e, null);
 
       distribution.local.groups.get(context.gid, (e, group) => {
-        if (e) return callback(e, null);
+        if (e) 
+          return callback(e, null);
 
         const nodes = Object.values(group || {});
         if (nodes.length === 0) 
@@ -94,6 +95,7 @@ function mem(config) {
               }
             );
           });
+          return;
         }
 
         const kid = distribution.util.id.getID(key);
@@ -122,12 +124,13 @@ function mem(config) {
   function put(state, configuration, callback) {
     extractKey(configuration, (e, key) => {
       if (e) 
-        callback(e, null);
+        return callback(e, null);
 
       key = key ?? distribution.util.id.getID(state);
 
       distribution.local.groups.get(context.gid, (e, group) => {
-        if (e) return callback(e, null);
+        if (e) 
+          return callback(e, null);
 
         const nodes = Object.values(group || {});
         if (nodes.length === 0) 
@@ -167,7 +170,7 @@ function mem(config) {
   function del(configuration, callback) {
     extractKey(configuration, (e, key) => {
       if (e) 
-        callback(e, null);
+        return callback(e, null);
 
       if (key == null) 
         return callback(new Error('invalid key'), null);
@@ -203,7 +206,117 @@ function mem(config) {
    * @param {Callback} callback
    */
   function reconf(configuration, callback) {
-    return callback(new Error('mem.reconf not implemented'));
+    const oldGroup = configuration || {};
+    const oldNodes = Object.values(oldGroup);
+    const oldNidToNode = new Map(oldNodes.map(node => [distribution.util.id.getNID(node), node]));
+    const oldNids = [...oldNidToNode.keys()];
+
+    distribution.local.groups.get(context.gid, (e, newGroup) => {
+      if (e && Object.keys(e).length > 0)
+        return callback(e, null);
+
+      const newNodes = Object.values(newGroup || {});
+      const newNidToNode = new Map(newNodes.map(node => [distribution.util.id.getNID(node), node]));
+      const newNids = [...newNidToNode.keys()];
+
+      let allKeys = [];
+      let pendingScan = oldNodes.length;
+
+      if (pendingScan === 0)
+        return callback(null, []);
+
+      oldNodes.forEach((node) => {
+        distribution.local.comm.send(
+          [null],
+          { service: 'mem', method: 'get', node },
+          (err, keys) => {
+            if (!err && Array.isArray(keys)) {
+              allKeys = allKeys.concat(keys);
+            }
+            pendingScan--;
+
+            if (pendingScan === 0)
+              processReconf(allKeys);
+          }
+        );
+      });
+
+      function processReconf(keys) {
+        /** @type {{ key: string, from: any, to: any }[]} */
+        const moves = [];
+
+        keys.forEach((key) => {
+          const kid = distribution.util.id.getID(key);
+
+          const oldNid = context.hash(kid, oldNids);
+          const newNid = context.hash(kid, newNids);
+
+          if (oldNid === newNid)
+            return;
+
+          const fromNode = oldNidToNode.get(oldNid);
+          const toNode = newNidToNode.get(newNid);
+
+          if (!fromNode || !toNode)
+            return;
+
+          moves.push({ key, from: fromNode, to: toNode });
+        });
+
+        if (moves.length === 0)
+          return callback(null, []);
+
+        let pendingMove = moves.length;
+        const movedKeys = [];
+        let finished = false;
+
+        moves.forEach(({ key, from, to }) => {
+          distribution.local.comm.send(
+            [key],
+            { service: 'mem', method: 'get', node: from },
+            (err, value) => {
+              if (finished) return;
+              if (err) {
+                finished = true;
+                return callback(err, null);
+              }
+
+              distribution.local.comm.send(
+                [key],
+                { service: 'mem', method: 'del', node: from },
+                (err2) => {
+                  if (finished) return;
+                  if (err2) {
+                    finished = true;
+                    return callback(err2, null);
+                  }
+
+                  distribution.local.comm.send(
+                    [value, key],
+                    { service: 'mem', method: 'put', node: to },
+                    (err3) => {
+                      if (finished) return;
+                      if (err3) {
+                        finished = true;
+                        return callback(err3, null);
+                      }
+
+                      movedKeys.push(key);
+                      pendingMove--;
+
+                      if (pendingMove === 0) {
+                        finished = true;
+                        return callback(null, movedKeys);
+                      }
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      }
+    });
   }
   /* For the distributed mem service, the configuration will
           always be a string */
