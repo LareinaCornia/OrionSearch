@@ -37,13 +37,18 @@ function append(state, configuration, callback) {
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  if (typeof configuration !== 'string')
+  let key;
+  if (typeof configuration === 'string')
+    key = configuration;
+  else if (typeof configuration === 'object' && configuration.key)
+    key = configuration.key;
+  else
     return callback(new Error('invalid key'), null);
   
-  if (!map.has(configuration))
+  if (!map.has(key))
     return callback(new Error('key not found'), null);
 
-  return callback(null, map.get(configuration));
+  return callback(null, map.get(key));
 }
 
 /**
