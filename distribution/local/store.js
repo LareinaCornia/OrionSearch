@@ -25,18 +25,40 @@ const STORE_DIR = path.resolve(__dirname, '.store');
 /**
  * @param {any} state
  * @param {SimpleConfig} configuration
+ */
+function extract(configuration, state) {
+  let key;
+  let gid = 'local';
+
+  if (configuration == null && state)
+    key = distribution.util.id.getID(state);
+  else if (typeof configuration === 'string')
+    key = configuration;
+  else if (typeof configuration === 'object' && typeof configuration.key === 'string') {
+    key = configuration.key;
+    gid = configuration.gid || 'local';
+  } 
+  else
+    return { error: new Error('invalid key') };
+
+  key = String(key).replace(/[^a-zA-Z0-9]/g, '');
+  return { key, gid };
+}
+
+/**
+ * @param {any} state
+ * @param {SimpleConfig} configuration
  * @param {Callback} callback
  */
 function put(state, configuration, callback) {
-  if (configuration != null && typeof configuration !== 'string')
-    return callback(new Error('invalid key'), null);
+  const { key, gid, error } = extract(configuration, state);
+  if (error) 
+    return callback(error, null);
 
-  if (configuration == null)
-    configuration = distribution.util.id.getID(state);
+  const dir = path.join(STORE_DIR, gid);
+  fs.mkdirSync(dir, { recursive: true });
 
-  configuration = String(configuration).replace(/[^a-zA-Z0-9]/g, '');
-  
-  const filePath = path.join(STORE_DIR, configuration);
+  const filePath = path.join(dir, key);
 
   const data = distribution.util.serialize(state);
 
@@ -53,11 +75,11 @@ function put(state, configuration, callback) {
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  if (configuration == null || typeof configuration !== 'string')
+  const { key, gid, error } = extract(configuration);
+  if (error || key == null)
     return callback(new Error('invalid key'), null);
 
-  configuration = String(configuration).replace(/[^a-zA-Z0-9]/g, '');
-  const filePath = path.join(STORE_DIR, configuration);
+  const filePath = path.join(STORE_DIR, gid, key);
 
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) 
@@ -72,11 +94,11 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function del(configuration, callback) {
-  if (configuration == null || typeof configuration !== 'string')
+  const { key, gid, error } = extract(configuration);
+  if (error || key == null)
     return callback(new Error('invalid key'), null);
 
-  configuration = String(configuration).replace(/[^a-zA-Z0-9]/g, '');
-  const filePath = path.join(STORE_DIR, configuration);
+  const filePath = path.join(STORE_DIR, gid, key);
 
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) 
