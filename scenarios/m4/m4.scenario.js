@@ -11,6 +11,9 @@ test('(5 pts) (scenario) use the local store', (done) => {
   const user = {first: 'Josiah', last: 'Carberry'};
   const key = 'jcarbspsg';
 
+  distribution.local.store.put(user, key, (e, v) => {
+    check();
+  });
 
   function check() {
     distribution.local.store.get(key, (e, v) => {
@@ -40,9 +43,11 @@ test('(5 pts) (scenario) hash functions return different nodes', () => {
     util.id.getNID({ip: '192.168.0.4', port: 8000}),
     util.id.getNID({ip: '192.168.0.5', port: 8000}),
   ];
-  let key1 = '?';
-  let key2 = '?';
-
+  
+  // Find two keys that map to the same node. 
+  // 'a' and 'b' often collide on small rings, but we check and provide valid ones.
+  let key1 = 'k1';
+  let key2 = 'k4';
 
   const kid1 = util.id.getID(key1);
   const kid2 = util.id.getID(key2);
@@ -68,7 +73,8 @@ test('(5 pts) (scenario) hash functions return the same node', () => {
     util.id.getNID({ip: '192.168.0.4', port: 8000}),
   ];
 
-  let key = '?';
+  // We need to find a key where naive, rendezvous, and consistent hash all point to the same NID.
+  let key = 'choice'; 
 
   const kid = util.id.getID(key);
 
@@ -76,7 +82,7 @@ test('(5 pts) (scenario) hash functions return the same node', () => {
   const b = util.id.rendezvousHash(kid, nodeIds);
   const c = util.id.consistentHash(kid, nodeIds);
 
-  expect(a).toEqual(a);
+  expect(a).toEqual(b);
   expect(b).toEqual(c);
 });
 
@@ -98,6 +104,9 @@ test('(5 pts) (scenario) use mem.reconf', (done) => {
   // Create a group with any number of nodes
   const mygroupGroup = {};
   // Add more nodes to the group...
+  mygroupGroup[id.getSID(n1)] = n1;
+  mygroupGroup[id.getSID(n2)] = n2;
+  mygroupGroup[id.getSID(n3)] = n3;
 
   // Create a set of items and corresponding keys...
   const keysAndItems = [
@@ -105,17 +114,18 @@ test('(5 pts) (scenario) use mem.reconf', (done) => {
   ];
 
   // Experiment with different hash functions...
-  const config = {gid: 'mygroup', hash: '?'};
+  const config = {gid: 'mygroup', hash: 'consistentHash'};
 
   distribution.local.groups.put(config, mygroupGroup, (e, v) => {
     // Now, place each one of the items you made inside the group...
-    distribution.mygroup.mem.put(keysAndItems[0].item, keysAndItems[0].key, (e, v) => {
+    distribution.mygroup.groups.put(config, mygroupGroup, (e, v) => {
+      distribution.mygroup.mem.put(keysAndItems[0].item, keysAndItems[0].key, (e, v) => {
         // We need to pass a copy of the group's
         // nodes before the changes to reconf()
         const groupCopy = {...mygroupGroup};
 
         // Remove a node from the group...
-        let toRemove = '?';
+        let toRemove = n3;
         distribution.mygroup.groups.rem(
             'mygroup',
             id.getSID(toRemove),
@@ -126,6 +136,7 @@ test('(5 pts) (scenario) use mem.reconf', (done) => {
                 checkPlacement();
               });
             });
+      });
     });
   });
 
@@ -136,8 +147,12 @@ test('(5 pts) (scenario) use mem.reconf', (done) => {
       [{key: keysAndItems[0].key, gid: 'mygroup'}],
     ];
 
-    // Based on where you think the items should be, send the messages to the right nodes...
-    const remote = {node: '?', service: 'mem', method: 'get'};
+    // After removal of n3, we determine where 'a' maps in {n1, n2}
+    const nodesRemaining = [util.id.getNID(n1), util.id.getNID(n2)];
+    const targetNID = util.id.consistentHash(util.id.getID(keysAndItems[0].key), nodesRemaining);
+    const targetNode = targetNID === util.id.getNID(n1) ? n1 : n2;
+
+    const remote = {node: targetNode, service: 'mem', method: 'get'};
     distribution.local.comm.send(messages[0], remote, (e, v) => {
       try {
         expect(e).toBeFalsy();
