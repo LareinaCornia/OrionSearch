@@ -53,17 +53,34 @@ const mr = require('./mr.js');
  * @param {Config} config
  * @returns {GroupServices}
  */
+// function setup(config) {
+//   return {
+//     comm: comm(config),
+//     groups: groups(config),
+//     status: status(config),
+//     routes: routes(config),
+//     gossip: gossip(config),
+//     mem: mem(config),
+//     store: store(config),
+//     mr: mr(config),
+//   };
+// }
 function setup(config) {
-  return {
+  const services = {
     comm: comm(config),
     groups: groups(config),
     status: status(config),
     routes: routes(config),
-    gossip: gossip(config),
     mem: mem(config),
     store: store(config),
+    gossip: gossip(config),
     mr: mr(config),
   };
+
+  services.gossip.register(services.mem.reconf);
+  services.gossip.register(services.store.reconf);
+
+  return services;
 }
 
 module.exports = {

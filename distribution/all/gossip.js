@@ -21,9 +21,32 @@
  * @property {(payload: Payload, remote: Remote, callback: Callback) => void} send
  * @property {(perod: number, func: () => void, callback: Callback) => void} at
  * @property {(intervalID: NodeJS.Timeout, callback: Callback) => void} del
+ * @property {(listener: Function) => void} register
  */
 
 const distribution = globalThis.distribution;
+
+/**
+ * @type {Map<string, {
+ *   listeners: Array<Function>,
+ *   beaconStarted: boolean,
+ *   beaconInFlight: boolean,
+ *   debounceTimer: NodeJS.Timeout | null
+ * }>}
+ */
+const GID_STATE = new Map();
+
+function getSharedState(gid) {
+  if (!GID_STATE.has(gid)) {
+    GID_STATE.set(gid, {
+      listeners: [],
+      beaconStarted: false,
+      beaconInFlight: false,
+      debounceTimer: null,
+    });
+  }
+  return GID_STATE.get(gid);
+}
 
 /**
  * @param {Config} config
@@ -35,6 +58,8 @@ function gossip(config) {
   context.subset = config.subset || function(lst) {
     return Math.ceil(Math.log(lst.length));
   };
+
+  const shared = getSharedState(context.gid);
 
   /**
    * @param {Payload} payload
@@ -128,7 +153,111 @@ function gossip(config) {
     callback(null, "stopped");
   }
 
-  return {send, at, del};
+  /**
+   * @param {number} period
+   */
+  function beacons(period) {
+    shared.beaconStarted = true;
+
+    at(period, () => {
+      // avoid overlapping healthy check rounds
+      if (shared.beaconInFlight) 
+        return; 
+      shared.beaconInFlight = true;
+
+      distribution.local.groups.get(context.gid, (e, group) => {
+        if (e) {
+          shared.beaconInFlight = false;
+          return;
+        }
+
+        const selfSID = distribution.util.id.getSID(distribution.node.config);
+        const deads = [];
+
+        const entries = Object.entries(group || {});
+        let pending = entries.length;
+
+        entries.forEach(([sid, node]) => {
+          if (sid === selfSID) {
+            pending--;
+            if (pending == 0)
+                finishDetection(group, deads);
+            return;
+          }
+            
+          distribution.local.comm.send(
+            [ 'port' ],
+            { node, service: 'status', method: 'get' },
+            (err, _) => {
+              if (err)
+                deads.push(sid);
+              
+              pending--;
+              if (pending == 0)
+                finishDetection(group, deads);
+            }
+          );
+        });
+        
+        /**
+         * @param {Object.<string, Node>} oldGroup
+         * @param {string[]} deads
+         */
+        function finishDetection(oldGroup, deads) {
+          if (!deads || deads.length === 0) {
+            shared.beaconInFlight = false;
+            return;
+          }
+
+          let pending = deads.length;
+          deads.forEach((sid) => {
+            // gossip dead notification
+            send([ context.gid, sid ], { service: 'groups', method: 'rem' }, () => {});
+
+            pending--;
+            if (pending === 0) {
+              distribution.local.groups.get(context.gid, (e2, newGroup) => {
+                shared.beaconInFlight = false;
+                if (e2) return;
+
+                const oldSize = Object.keys(oldGroup || {}).length;
+                const newSize = Object.keys(newGroup || {}).length;
+                if (oldSize !== newSize)
+                  upcall(oldGroup);
+              });
+            }
+          });
+        }
+      });
+    }, () => {});
+  }
+
+  /**
+   * @param {Function} listener
+   */
+  function register(listener) {
+    shared.listeners.push(listener);
+  }
+
+  /**
+   * @param {Object.<string, Node>} oldGroup
+   */
+  function upcall(oldGroup) {
+    // avoid trigger upcall frequently
+    if (shared.debounceTimer) 
+      return;
+
+    shared.debounceTimer = setTimeout(() => {
+      shared.debounceTimer = null;
+      shared.listeners.forEach(listener => (listener(oldGroup)));
+    }, 100);
+  }
+
+  // start beacons only once each gid
+  if (!shared.beaconStarted)
+    beacons(1000);
+
+  return {send, at, del, register};
 }
 
 module.exports = gossip;
