@@ -42,7 +42,7 @@ function put(state, configuration, callback) {
   key = key ? key : distribution.util.id.getID(state);
   key = String(key).replace(/[^a-zA-Z0-9]/g, '');
 
-  const dir = path.join(STORE_DIR, gid);
+  const dir = path.join(STORE_DIR, `${ distribution.node.config.ip}-${distribution.node.config.port}`, gid);
   fs.mkdirSync(dir, { recursive: true });
   const filePath = path.join(dir, key);
 
@@ -63,7 +63,7 @@ function get(configuration, callback) {
   const { key, gid } = extract(configuration);
 
   if (key === null) {
-    const dirPath = path.join(STORE_DIR, gid);
+    const dirPath = path.join(STORE_DIR, `${distribution.node.config.ip}-${distribution.node.config.port}`, gid);
 
     return fs.readdir(dirPath, (err, files) => {
       if (err) {
@@ -75,7 +75,7 @@ function get(configuration, callback) {
     });
   }
 
-  const filePath = path.join(STORE_DIR, gid, key);
+  const filePath = path.join(STORE_DIR, `${distribution.node.config.ip}-${distribution.node.config.port}`, gid, key);
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) 
       return callback(new Error('key not found'), null);
@@ -93,7 +93,7 @@ function del(configuration, callback) {
   if (key == null)
     return callback(new Error('invalid key'), null);
 
-  const filePath = path.join(STORE_DIR, gid, key);
+  const filePath = path.join(STORE_DIR, `${distribution.node.config.ip}-${distribution.node.config.port}`, gid, key);
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) 
       return callback(new Error('key not found'), null);
@@ -114,7 +114,22 @@ function del(configuration, callback) {
  * @param {Callback} callback
  */
 function append(state, configuration, callback) {
-  return callback(new Error('store.append not implemented'));
+  const { key, gid } = extract(configuration);
+  if (key == null)
+    return callback(new Error('invalid key'), null);
+
+  const filePath = path.join(STORE_DIR, `${distribution.node.config.ip}-${distribution.node.config.port}`, gid, key);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+
+  let values = [];
+  if (fs.existsSync(filePath)) {
+    const data = fs.readFileSync(filePath, 'utf8');
+    values = distribution.util.deserialize(data);
+  }
+  values.push(...(Array.isArray(state) ? state : [state]));
+
+  fs.writeFileSync(filePath, distribution.util.serialize(values));
+  callback(null, values);
 }
 
 module.exports = {put, get, del, append};

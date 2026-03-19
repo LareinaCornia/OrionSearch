@@ -168,7 +168,25 @@ function store(config) {
    * @param {Callback} callback
    */
   function append(state, configuration, callback) {
-    return callback(new Error('store.append not implemented'));
+    const key = extractKey(configuration);
+
+    if (key === undefined || key === null)
+      return callback(new Error('invalid key'), null);
+
+    pickNode(key, (e, node) => {
+      if (e) 
+        return callback(e, null);
+
+      distribution.local.comm.send(
+        [ state, { gid: context.gid, key} ],
+        {
+          node,
+          service: 'store',
+          method: 'append'
+        },
+        callback
+      );
+    });
   }
 
   /**

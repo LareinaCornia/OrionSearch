@@ -254,8 +254,8 @@ function gossip(config) {
   }
 
   // start beacons only once each gid
-  if (!shared.beaconStarted)
-    beacons(1000);
+  // if (!shared.beaconStarted)
+  //   beacons(1000);
 
   return {send, at, del, register};
 }
