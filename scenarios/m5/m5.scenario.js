@@ -94,7 +94,7 @@ test('(10 pts) (scenario) all.mr:dlib', (done) => {
 */
 
   const mapper = (key, value) => {
-    const words = value.split(/[\s,]+/).filter((w) => w.length > 0);
+    const words = value.split(/\s+/).filter((w) => w.length > 0);
     return words.map((w) => ({[w]: 1}));
   };
 
@@ -253,23 +253,104 @@ test('(10 pts) (scenario) all.mr:tfidf', (done) => {
 */
 
 test('(10 pts) (scenario) all.mr:crawl', (done) => {
+  const mapper = (key, value) => [{[value]: 1}];
+  const reducer = (key, values) => ({[key]: values.length});
+  const dataset = [{'p1': 'webA'}, {'p2': 'webB'}, {'p3': 'webA'}];
+  const expected = [{'webA': 2}, {'webB': 1}];
   
+  let cntr = 0;
+  dataset.forEach((o) => {
+    const key = Object.keys(o)[0];
+    distribution.crawl.store.put(o[key], key, (e, v) => {
+      if (++cntr === dataset.length) {
+        distribution.crawl.mr.exec({keys: dataset.map(d => Object.keys(d)[0]), map: mapper, reduce: reducer}, (e, v) => {
+          try { expect(v).toEqual(expect.arrayContaining(expected)); done(); } catch (e) { done(e); }
+        });
+      }
+    });
+  });
 });
 
 test('(10 pts) (scenario) all.mr:urlxtr', (done) => {
-  
+  const mapper = (key, value) => {
+    const urls = value.match(/https?:\/\/[^\s]+/g) || [];
+    return urls.map(u => ({[u]: 1}));
+  };
+  const reducer = (key, values) => ({[key]: values.length});
+  const dataset = [{'d1': 'link to http://a.com'}, {'d2': 'http://a.com and http://b.com'}];
+  const expected = [{'http://a.com': 2}, {'http://b.com': 1}];
+
+  let cntr = 0;
+  dataset.forEach((o) => {
+    const key = Object.keys(o)[0];
+    distribution.urlxtr.store.put(o[key], key, (e, v) => {
+      if (++cntr === dataset.length) {
+        distribution.urlxtr.mr.exec({keys: dataset.map(d => Object.keys(d)[0]), map: mapper, reduce: reducer}, (e, v) => {
+          try { expect(v).toEqual(expect.arrayContaining(expected)); done(); } catch (e) { done(e); }
+        });
+      }
+    });
+  });
 });
 
 test('(10 pts) (scenario) all.mr:strmatch', (done) => {
-  
+  const mapper = (key, value) => value.includes('target') ? [{[key]: true}] : [];
+  const reducer = (key, values) => ({[key]: values[0]});
+  const dataset = [{'d1': 'no match'}, {'d2': 'this is target'}];
+  const expected = [{'d2': true}];
+
+  let cntr = 0;
+  dataset.forEach((o) => {
+    const key = Object.keys(o)[0];
+    distribution.strmatch.store.put(o[key], key, (e, v) => {
+      if (++cntr === dataset.length) {
+        distribution.strmatch.mr.exec({keys: dataset.map(d => Object.keys(d)[0]), map: mapper, reduce: reducer}, (e, v) => {
+          try { expect(v).toEqual(expect.arrayContaining(expected)); done(); } catch (e) { done(e); }
+        });
+      }
+    });
+  });
 });
 
 test('(10 pts) (scenario) all.mr:ridx', (done) => {
-  
+  const mapper = (key, value) => value.split(' ').map(w => ({[w]: key}));
+  const reducer = (key, values) => ({[key]: values.sort()});
+  const dataset = [{'d1': 'a b'}, {'d2': 'a c'}];
+  const expected = [{'a': ['d1', 'd2']}, {'b': ['d1']}, {'c': ['d2']}];
+
+  let cntr = 0;
+  dataset.forEach((o) => {
+    const key = Object.keys(o)[0];
+    distribution.ridx.store.put(o[key], key, (e, v) => {
+      if (++cntr === dataset.length) {
+        distribution.ridx.mr.exec({keys: dataset.map(d => Object.keys(d)[0]), map: mapper, reduce: reducer}, (e, v) => {
+          try { expect(v).toEqual(expect.arrayContaining(expected)); done(); } catch (e) { done(e); }
+        });
+      }
+    });
+  });
 });
 
 test('(10 pts) (scenario) all.mr:rlg', (done) => {
-  
+  const mapper = (key, value) => {
+    const parts = value.split('->');
+    return [{[parts[0]]: parts[1]}];
+  };
+  const reducer = (key, values) => ({[key]: values.sort()});
+  const dataset = [{'l1': 'A->B'}, {'l2': 'A->C'}, {'l3': 'B->D'}];
+  const expected = [{'A': ['B', 'C']}, {'B': ['D']}];
+
+  let cntr = 0;
+  dataset.forEach((o) => {
+    const key = Object.keys(o)[0];
+    distribution.rlg.store.put(o[key], key, (e, v) => {
+      if (++cntr === dataset.length) {
+        distribution.rlg.mr.exec({keys: dataset.map(d => Object.keys(d)[0]), map: mapper, reduce: reducer}, (e, v) => {
+          try { expect(v).toEqual(expect.arrayContaining(expected)); done(); } catch (e) { done(e); }
+        });
+      }
+    });
+  });
 });
 
 /*
