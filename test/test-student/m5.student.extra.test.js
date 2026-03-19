@@ -9,13 +9,14 @@ const distribution = require('../../distribution.js')();
 const id = distribution.util.id;
 require('../helpers/sync-guard');
 
-const compactGroup = {};
+const icgpGroup = {};
+const dpgpGroup = {};
 
 const n1 = {ip: '127.0.0.1', port: 7110};
 const n2 = {ip: '127.0.0.1', port: 7111};
 const n3 = {ip: '127.0.0.1', port: 7112};
 
-test.only('(15 pts) implement compaction', (done) => {
+test('(15 pts) implement compaction', (done) => {
     const mapper = (key, value) => {
         const words = value.split(' ');
         const out = [];
@@ -74,7 +75,66 @@ test.only('(15 pts) implement compaction', (done) => {
 });
 
 test('(15 pts) add support for distributed persistence', (done) => {
-    done(new Error('Not implemented'));
+    const mapper = (key, value) => {
+        const words = value.split(' ');
+        const out = [];
+        words.forEach(w => {
+            const obj = {};
+            obj[w] = 1;
+            out.push(obj);
+        });
+        return out;
+    };
+
+    const reducer = (key, values) => {
+        const out = {};
+        out[key] = values.reduce((a, b) => a + b, 0);
+        return out;
+    };
+
+    const compact = reducer;
+
+    const dataset = [
+        {'doc1': 'aa bb'},
+        {'doc2': 'ab ab'},
+        {'doc3': 'bb aa'},
+    ];
+
+    const expected = [
+        { aa: 2 },
+        { bb: 2 },
+        { ab: 2 }
+    ];
+
+    const doMapReduce = () => {
+        const configuration = {keys: getDatasetKeys(dataset), map: mapper, reduce: reducer, compact: compact};
+            distribution.dpgp.mr.exec(configuration, (e, v) => {
+            try {
+                expect(v).toEqual(expect.arrayContaining(expected));
+                expect(v).toHaveLength(expected.length);
+                const output = `mr-dpgp-${distribution.util.id.getID(configuration)}Output`
+                distribution[output].store.get(null, (e, keys) => {
+                    expect(keys).toEqual(expect.arrayContaining(getDatasetKeys(expected)))
+                    done();
+                });
+            } catch (e) {
+                done(e);
+            }
+        });
+    };
+
+    let cntr = 0;
+
+    dataset.forEach((o) => {
+        const key = Object.keys(o)[0];
+        const value = o[key];
+        distribution.dpgp.store.put(value, key, (e, v) => {
+            cntr++;
+            if (cntr === dataset.length) {
+                doMapReduce();
+            }
+        });
+    });
 });
 
 test('(5 pts) add support for optional in-memory operation', (done) => {
@@ -91,9 +151,13 @@ function getDatasetKeys(dataset) {
 
 beforeAll((done) => {
     try {
-        compactGroup[id.getSID(n1)] = n1;
-        compactGroup[id.getSID(n2)] = n2;
-        compactGroup[id.getSID(n3)] = n3;
+        icgpGroup[id.getSID(n1)] = n1;
+        icgpGroup[id.getSID(n2)] = n2;
+        icgpGroup[id.getSID(n3)] = n3;
+
+        dpgpGroup[id.getSID(n1)] = n1;
+        dpgpGroup[id.getSID(n2)] = n2;
+        dpgpGroup[id.getSID(n3)] = n3;
 
         const startNodes = (cb) => {
         distribution.local.status.spawn(n1, (e) => {
@@ -110,10 +174,17 @@ beforeAll((done) => {
 
         distribution.node.start((e) => {
             if (e) return done(e);
-            const compactConfig = {gid: 'icgp'};
+            const icgpConfig = {gid: 'icgp'};
             startNodes(() => {
-                distribution.local.groups.put(compactConfig, compactGroup, () => {
-                    distribution.icgp.groups.put(compactConfig, compactGroup, () => { done(); });
+                distribution.local.groups.put(icgpConfig, icgpGroup, () => {
+                    distribution.icgp.groups.put(icgpConfig, icgpGroup, () => { 
+                        const dpgpConfig = {gid: 'dpgp'};
+                        distribution.local.groups.put(dpgpConfig, dpgpGroup, () => { 
+                            distribution.dpgp.groups.put(dpgpConfig, dpgpGroup, () => { 
+                                done();
+                            });
+                        });
+                    });
                 });
             });
         });

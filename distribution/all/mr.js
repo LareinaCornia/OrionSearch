@@ -259,10 +259,15 @@ function mr(config) {
             },
             (e, res) => {
               if (e) return callback(e, null);
-              results.push(res);
-              pending--;
-              if (pending === 0) 
-                return notify(results);
+
+              // distributed persistence implementation
+              const [k, v] = Object.entries(res)[0];
+              distribution[`${mrid}Output`].store.put(v, k, (e, _) => {
+                results.push(res);
+                pending--;
+                if (pending === 0) 
+                  return notify(results);
+              });
             }
           );
           }
@@ -324,6 +329,14 @@ function mr(config) {
 
         distribution.local.groups.put(mrid, group, () => {
           distribution[gid].groups.put(mrid, group, () => {
+
+            const outputDir = `${mrid}Output`;
+            distribution.local.groups.put(outputDir, group, () => {
+              distribution[gid].groups.put(outputDir, group, () => {
+
+              });
+            });
+
             // data migration
             configuration.keys.forEach(key => {
               distribution[gid].store.get(key, (_, value) => {
