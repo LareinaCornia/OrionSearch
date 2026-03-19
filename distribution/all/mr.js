@@ -26,6 +26,7 @@
  * @property {Mapper} map
  * @property {Reducer} reduce
  * @property {string[]} keys
+ * @property {Reducer} [compact]
  *
  * @typedef {Object} Mr
  * @property {(configuration: MRConfig, cb: Callback) => void} exec
@@ -68,7 +69,7 @@ function mr(config) {
     distribution.local.store.get({ gid: mrid , key: null}, (e, keys) => {
       if (e)  return callback(e, null);
 
-      const results = [];
+      let results = [];
       let pending = keys.length;
       if (pending == 0) 
         return notify();
@@ -95,14 +96,49 @@ function mr(config) {
 
               pending--;
               if (pending == 0) {
-                distribution.local.store.put(
-                  results,
-                  { gid: mrid, key: 'intermediate'},
-                  (e, _) => {
-                    if (e) return callback(e, null);
-                    return notify();
+                // compaction
+                distribution.local.routes.get({ service: mrid }, (e, service) => {
+                  if (!e && service['compact']) {
+                    const grouped = {};
+                    results.forEach((item) => {
+                      if (!grouped[item.key]) 
+                        grouped[item.key] = [];
+                      grouped[item.key].push(item.value);
+                    });
+
+                    results = [];
+                    const entries = Object.entries(grouped);
+                    pending = entries.length;
+                    entries.forEach(([key, values]) => {
+                      service['compact'](key, values, (_, result) => { 
+                        Object.entries(result).forEach(([k, v]) => {
+                          results.push({ key: k, value: v });
+                        });
+                        pending--;
+                        if (pending == 0) {
+                          distribution.local.store.put(
+                            results,
+                            { gid: mrid, key: 'intermediate'},
+                            (e, _) => {
+                              if (e) return callback(e, null);
+                              return notify();
+                            }
+                          );
+                        }
+                      });
+                    });
                   }
-                );
+                  else {
+                    distribution.local.store.put(
+                      results,
+                      { gid: mrid, key: 'intermediate'},
+                      (e, _) => {
+                        if (e) return callback(e, null);
+                        return notify();
+                      }
+                    );
+                  }
+                });
               }
             }
           );
@@ -296,40 +332,40 @@ function mr(config) {
                   if (pending == 0) {
 
                     // function registration
-                    const mapper = new Function(
+                    const map = new Function(
                       'key', 'value', 'cb', `
-                      try {
-                        const fn = ${configuration.map.toString()};
-                        const res = fn(key, value);
-                        cb(null, res);
-                      } catch (e) {
-                        cb(e, null);
-                      }
+                      const fn = ${configuration.map.toString()};
+                      const res = fn(key, value);
+                      cb(null, res);
                     `);
-                    const reducer = new Function(
+                    const reduce = new Function(
                       'key', 'values', 'cb', `
-                      try {
-                        const fn = ${configuration.reduce.toString()};
-                        const res = fn(key, values);
-                        cb(null, res);
-                      } catch (e) {
-                        cb(e, null);
-                      }
+                      const fn = ${configuration.reduce.toString()};
+                      const res = fn(key, values);
+                      cb(null, res);
                     `);
 
+                    const workerService = {
+                      'map': map,
+                      'reduce': reduce,
+                      'notify': notifyRPC,
+                      'mapPhase': mapPhase,
+                      'shufflePhase': shufflePhase,
+                      'reducePhase': reducePhase
+                    };
+                
+                    if (configuration.compact) {
+                      const compact = new Function(
+                        'key', 'values', 'cb', `
+                        const fn = ${configuration.compact.toString()};
+                        const res = fn(key, values);
+                        cb(null, res);
+                      `);
+                      workerService['compact'] = compact;
+                    }
+
                     distribution.local.routes.put(notify, 'notify', () => {
-                      distribution[mrid].routes.put(
-                        {
-                          'map': mapper,
-                          'reduce': reducer,
-                          'notify': notifyRPC,
-                          'mapPhase': mapPhase,
-                          'shufflePhase': shufflePhase,
-                          'reducePhase': reducePhase
-                        }, 
-                        mrid, 
-                        () => { callback(null, null); }
-                      );
+                      distribution[mrid].routes.put(workerService, mrid, () => { callback(null, null); });
                     });
                   }
                 });
