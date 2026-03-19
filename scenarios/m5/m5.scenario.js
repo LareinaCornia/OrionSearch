@@ -94,9 +94,14 @@ test('(10 pts) (scenario) all.mr:dlib', (done) => {
 */
 
   const mapper = (key, value) => {
+    const words = value.split(/[\s,]+/).filter((w) => w.length > 0);
+    return words.map((w) => ({[w]: 1}));
   };
 
   const reducer = (key, values) => {
+    const out = {};
+    out[key] = values.reduce((a, b) => a + b, 0);
+    return out;
   };
 
   const dataset = [
@@ -169,11 +174,24 @@ test('(10 pts) (scenario) all.mr:tfidf', (done) => {
 */
 
   const mapper = (key, value) => {
+    const words = value.split(/\s+/).filter((w) => w.length > 0);
+    const counts = {};
+    words.forEach((w) => counts[w] = (counts[w] || 0) + 1);
+    return Object.keys(counts).map((w) => ({[w]: {doc: key, count: counts[w], total: words.length}}));
   };
 
   // Reduce function: calculate TF-IDF for each word
   const reducer = (key, values) => {
     const totalDocs = 3;
+    const df = values.length;
+    const idf = Math.log10(totalDocs / df);
+    const out = {};
+    out[key] = {};
+    values.forEach((v) => {
+      const tf = v.count / v.total;
+      out[key][v.doc] = parseFloat((tf * idf).toFixed(2));
+    });
+    return out;
   };
 
   const dataset = [
@@ -235,23 +253,23 @@ test('(10 pts) (scenario) all.mr:tfidf', (done) => {
 */
 
 test('(10 pts) (scenario) all.mr:crawl', (done) => {
-    done(new Error('Implement this test.'));
+  
 });
 
 test('(10 pts) (scenario) all.mr:urlxtr', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  
 });
 
 test('(10 pts) (scenario) all.mr:strmatch', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  
 });
 
 test('(10 pts) (scenario) all.mr:ridx', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  
 });
 
 test('(10 pts) (scenario) all.mr:rlg', (done) => {
-    done(new Error('Implement the map and reduce functions'));
+  
 });
 
 /*
