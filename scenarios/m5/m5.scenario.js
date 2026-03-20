@@ -403,20 +403,19 @@ beforeAll((done) => {
   };
 
   distribution.node.start(() => {
-    const ncdcConfig = {gid: 'ncdc'};
     startNodes(() => {
-      distribution.local.groups.put(ncdcConfig, ncdcGroup, (e, v) => {
-        distribution.ncdc.groups.put(ncdcConfig, ncdcGroup, (e, v) => {
-          const dlibConfig = {gid: 'dlib'};
-          distribution.local.groups.put(dlibConfig, dlibGroup, (e, v) => {
-            distribution.dlib.groups.put(dlibConfig, dlibGroup, (e, v) => {
-              const tfidfConfig = {gid: 'tfidf'};
-              distribution.local.groups.put(tfidfConfig, tfidfGroup, (e, v) => {
-                distribution.tfidf.groups.put(tfidfConfig, tfidfGroup, (e, v) => {
-                  done();
-                });
-              });
-            });
+      const allGroups = [
+        {gid: 'ncdc', grp: ncdcGroup}, {gid: 'dlib', grp: dlibGroup},
+        {gid: 'tfidf', grp: tfidfGroup}, {gid: 'crawl', grp: crawlGroup},
+        {gid: 'urlxtr', grp: urlxtrGroup}, {gid: 'strmatch', grp: strmatchGroup},
+        {gid: 'ridx', grp: ridxGroup}, {gid: 'rlg', grp: rlgGroup},
+      ];
+      let gcnt = 0;
+      allGroups.forEach((g) => {
+        const config = {gid: g.gid};
+        distribution.local.groups.put(config, g.grp, (e, v) => {
+          distribution[g.gid].groups.put(config, g.grp, (e, v) => {
+            if (++gcnt === allGroups.length) done();
           });
         });
       });
