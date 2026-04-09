@@ -93,6 +93,9 @@ function mr(config) {
             (e, rs) => {
               if (e) return callback(e, null);
 
+              if (!Array.isArray(rs))
+                rs = [rs];
+
               rs.forEach(obj => {
                 Object.entries(obj).forEach(([k, v]) => {
                   results.push({ key: k, value: v });
@@ -159,6 +162,7 @@ function mr(config) {
    */
   function shufflePhase(mrid, mode, callback) {
     const storage = mode ? distribution.local.mem : distribution.local.store;
+    const distributedStorage = mode ? distribution[mrid].mem : distribution[mrid].store;
 
     function notify() {
       return distribution.local.comm.send(
@@ -208,7 +212,7 @@ function mr(config) {
                 return notify();
 
               entries.forEach(([key, values]) => {
-                storage.append(
+                distributedStorage.append(
                   values,
                   { gid: mrid, key: key },
                   (e, _) => {
