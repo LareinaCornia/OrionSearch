@@ -27,6 +27,8 @@
  * @property {Reducer} reduce
  * @property {string[]} keys
  * @property {Reducer} [compact]
+ * @property {boolean} [mode]
+ * @property {number} [rounds]
  *
  * @typedef {Object} Mr
  * @property {(configuration: MRConfig, cb: Callback) => void} exec
@@ -51,9 +53,12 @@ function mr(config) {
 
   /**
    * @param {string} mrid
+   * @param {boolean} mode
    * @param {Callback} callback
    */
-  function mapPhase(mrid, callback) {
+  function mapPhase(mrid, mode, callback) {
+    const storage = mode ? distribution.local.mem : distribution.local.store;
+
     function notify() {
       return distribution.local.comm.send(
         [[]],
@@ -66,7 +71,7 @@ function mr(config) {
       );
     };
 
-    distribution.local.store.get({ gid: mrid , key: null}, (e, keys) => {
+    storage.get({ gid: mrid , key: null}, (e, keys) => {
       if (e)  return callback(e, null);
 
       let results = [];
@@ -75,7 +80,7 @@ function mr(config) {
         return notify();
 
       keys.forEach((key) => {
-        distribution.local.store.get({ gid: mrid, key }, (e, value) => {
+        storage.get({ gid: mrid, key }, (e, value) => {
           if (e)  return callback(e, null);
 
           distribution.local.comm.send(
@@ -116,7 +121,7 @@ function mr(config) {
                         });
                         pending--;
                         if (pending == 0) {
-                          distribution.local.store.put(
+                          storage.put(
                             results,
                             { gid: mrid, key: 'intermediate'},
                             (e, _) => {
@@ -129,7 +134,7 @@ function mr(config) {
                     });
                   }
                   else {
-                    distribution.local.store.put(
+                    storage.put(
                       results,
                       { gid: mrid, key: 'intermediate'},
                       (e, _) => {
@@ -149,9 +154,12 @@ function mr(config) {
 
   /**
    * @param {string} mrid
+   * @param {boolean} mode
    * @param {Callback} callback
    */
-  function shufflePhase(mrid, callback) {
+  function shufflePhase(mrid, mode, callback) {
+    const storage = mode ? distribution.local.mem : distribution.local.store;
+
     function notify() {
       return distribution.local.comm.send(
         [[]],
@@ -164,7 +172,7 @@ function mr(config) {
       );
     };
     
-    distribution.local.store.get({ gid: mrid, key: null}, (e, keys) => {
+    storage.get({ gid: mrid, key: null}, (e, keys) => {
       if (e) return callback(e, null);
 
       keys = keys.filter(k => k !== 'intermediate');
@@ -173,13 +181,12 @@ function mr(config) {
         return notify();
 
       keys.forEach((key) => {
-        distribution.local.store.del({ gid: mrid, key }, (e, _) => {
+        storage.del({ gid: mrid, key }, (e, _) => {
           if (e) return callback(e, null);
           
           pending--;
           if (pending === 0) {
-            // TODO: compaction implementation
-            distribution.local.store.get({ gid: mrid, key: 'intermediate'}, (e, list) => {
+            storage.get({ gid: mrid, key: 'intermediate'}, (e, list) => {
               if (e) return callback(e, null);
 
               pending = list.length;
@@ -201,7 +208,7 @@ function mr(config) {
                 return notify();
 
               entries.forEach(([key, values]) => {
-                distribution[mrid].store.append(
+                storage.append(
                   values,
                   { gid: mrid, key: key },
                   (e, _) => {
@@ -221,9 +228,12 @@ function mr(config) {
   
   /**
    * @param {string} mrid
+   * @param {boolean} mode
    * @param {Callback} callback
    */
-  function reducePhase(mrid, callback) {
+  function reducePhase(mrid, mode, callback) {
+    const storage = mode ? distribution.local.mem : distribution.local.store;
+
     function notify(res) {
       return distribution.local.comm.send(
         [res],
@@ -236,7 +246,7 @@ function mr(config) {
       );
     }
 
-    distribution.local.store.get({ gid: mrid, key: null}, (e, keys) => {
+    storage.get({ gid: mrid, key: null}, (e, keys) => {
       if (e) return callback(e, null);
 
       keys = keys.filter(k => k !== 'intermediate');
@@ -246,7 +256,7 @@ function mr(config) {
 
       const results = [];
       keys.forEach((key) => {
-        distribution.local.store.get(
+        storage.get(
           { gid: mrid, key},
           (e, values) => {
             if (e) return callback(e, null);
@@ -262,12 +272,20 @@ function mr(config) {
 
               // distributed persistence implementation
               const [k, v] = Object.entries(res)[0];
-              distribution[`${mrid}Output`].store.put(v, k, (e, _) => {
-                results.push(res);
-                pending--;
-                if (pending === 0) 
-                  return notify(results);
-              });
+              if (mode)
+                distribution[`${mrid}Output`].mem.put(v, k, (e, _) => {
+                  results.push(res);
+                  pending--;
+                  if (pending === 0) 
+                    return notify(results);
+                });
+              else 
+                distribution[`${mrid}Output`].store.put(v, k, (e, _) => {
+                  results.push(res);
+                  pending--;
+                  if (pending === 0) 
+                    return notify(results);
+                });
             }
           );
           }
@@ -283,7 +301,46 @@ function mr(config) {
    */
   function exec(configuration, cb) {
     const gid = context.gid;
-    const mrid = `mr-${gid}-${distribution.util.id.getID(configuration)}`
+    const rounds = configuration.rounds || 1;
+
+    if (rounds > 1) {
+      const current = {
+        ...configuration,
+        rounds: 1,
+      };
+
+      return exec(current, (e, values) => {
+        if (e) return cb(e, null);
+
+        if (!Array.isArray(values) || values.length === 0) {
+          return cb(null, values);
+        }
+
+        let pending = values.length;
+        const nextKeys = [];
+
+        values.forEach((obj) => {
+          const [key, value] = Object.entries(obj)[0];
+          nextKeys.push(key);
+
+          distribution[gid].store.put(value, key, (putErr) => {
+            if (putErr) return cb(putErr, null);
+
+            pending--;
+            if (pending === 0) {
+              return exec({
+                ...configuration,
+                keys: nextKeys,
+                rounds: rounds - 1,
+              }, cb);
+            }
+          });
+        });
+      });
+    }
+
+    const mrid = `mr-${gid}-${distribution.util.id.getID(configuration)}`;
+    const mode = configuration.mode;
 
     distribution.local.groups.get(gid, (e, group) => {
       if (e) return cb(e);
@@ -310,7 +367,7 @@ function mr(config) {
           pending = n;
           results = [];
           globalThis.distribution[mrid].comm.send(
-            [ mrid, () => {} ],
+            [ mrid, mode, () => {} ],
             {
               service: mrid,
               method: phases[idx],
@@ -340,7 +397,8 @@ function mr(config) {
             // data migration
             configuration.keys.forEach(key => {
               distribution[gid].store.get(key, (_, value) => {
-                distribution[mrid].store.put(value, key, () => {
+                const storage = mode ? distribution[mrid].mem : distribution[mrid].store;
+                storage.put(value, key, () => {
                   pending--;
                   if (pending == 0) {
 
@@ -393,7 +451,6 @@ function mr(config) {
           distribution[gid].groups.del(mrid, () => {
             distribution.local.routes.rem('notify', () => {
               distribution.local.groups.del(mrid, () => {
-                // TODO: mr task data clean up ?
                 callback(null, null);
               });
             });
@@ -403,7 +460,7 @@ function mr(config) {
 
       setup(() => {
         distribution[mrid].comm.send(
-          [ mrid, () => {}],
+          [ mrid, mode, () => {}],
           {
             service: mrid,
             method: phases[0],

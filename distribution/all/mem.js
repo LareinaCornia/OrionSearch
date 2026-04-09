@@ -34,6 +34,23 @@ function mem(config) {
   context.hash = config.hash || globalThis.distribution.util.id.naiveHash;
 
   /**
+   * @param {string | null} key
+   */
+  function withGid(key) {
+    return {gid: context.gid, key};
+  }
+
+  /**
+   * @param {any} err
+   */
+  function hasError(err) {
+    if (!err) return false;
+    if (err instanceof Error) return true;
+    if (typeof err === 'object') return Object.keys(err).length > 0;
+    return true;
+  }
+
+  /**
    * @param {SimpleConfig} configuration
    * @param {Callback} callback
    */
@@ -43,7 +60,7 @@ function mem(config) {
       key = null;
     else if (typeof configuration === 'string')
       key = configuration;
-    else if (typeof configuration === 'object' && typeof configuration.key === 'string')
+    else if (typeof configuration === 'object' && ('key' in configuration))
       key = configuration.key;
     else
       return callback(new Error('invalid key'), null);
@@ -77,14 +94,14 @@ function mem(config) {
           nodes.forEach((node) => {
             const sid = distribution.util.id.getSID(node);
             globalThis.distribution.local.comm.send(
-              [ null ],
+              [withGid(null)],
               {
                 service: 'mem',
                 method: 'get',
                 node
               },
               (err, keys) => {
-                if (err)
+                if (hasError(err))
                   errors[sid] = err;
                 else if (Array.isArray(keys))
                   keys.forEach(k => result.add(k));
@@ -104,7 +121,7 @@ function mem(config) {
         const node = nidToNode.get(nid);
 
         globalThis.distribution.local.comm.send(
-          [ configuration ],
+          [withGid(key)],
           {
             service: 'mem',
             method: 'get',
@@ -142,7 +159,7 @@ function mem(config) {
         const node = nidToNode.get(nid);
 
         globalThis.distribution.local.comm.send(
-          [ state, configuration ],
+          [state, withGid(key)],
           {
             service: 'mem',
             method: 'put',
@@ -160,7 +177,36 @@ function mem(config) {
    * @param {Callback} callback
    */
   function append(state, configuration, callback) {
-    return callback(new Error('mem.append not implemented'));
+    extractKey(configuration, (e, key) => {
+      if (e)
+        return callback(e, null);
+
+      key = key ?? distribution.util.id.getID(state);
+
+      distribution.local.groups.get(context.gid, (e, group) => {
+        if (e)
+          return callback(e, null);
+
+        const nodes = Object.values(group || {});
+        if (nodes.length === 0)
+          return callback(new Error('Empty group'), null);
+
+        const kid = distribution.util.id.getID(key);
+        const nidToNode = new Map(nodes.map((node) => [distribution.util.id.getNID(node), node]));
+        const nid = context.hash(kid, [...nidToNode.keys()]);
+        const node = nidToNode.get(nid);
+
+        globalThis.distribution.local.comm.send(
+          [state, withGid(key)],
+          {
+            service: 'mem',
+            method: 'append',
+            node,
+          },
+          callback
+        );
+      });
+    });
   }
 
   /**
@@ -189,7 +235,7 @@ function mem(config) {
         const node = nidToNode.get(nid);
 
         globalThis.distribution.local.comm.send(
-          [ configuration ],
+          [withGid(key)],
           {
             service: 'mem',
             method: 'del',
@@ -227,10 +273,10 @@ function mem(config) {
 
       oldNodes.forEach((node) => {
         distribution.local.comm.send(
-          [null],
+          [withGid(null)],
           { service: 'mem', method: 'get', node },
           (err, keys) => {
-            if (!err && Array.isArray(keys)) {
+            if (!hasError(err) && Array.isArray(keys)) {
               allKeys = allKeys.concat(keys);
             }
             pendingScan--;
@@ -272,31 +318,31 @@ function mem(config) {
 
         moves.forEach(({ key, from, to }) => {
           distribution.local.comm.send(
-            [key],
+            [withGid(key)],
             { service: 'mem', method: 'get', node: from },
             (err, value) => {
               if (finished) return;
-              if (err) {
+              if (hasError(err)) {
                 finished = true;
                 return callback(err, null);
               }
 
               distribution.local.comm.send(
-                [key],
+                [withGid(key)],
                 { service: 'mem', method: 'del', node: from },
                 (err2) => {
                   if (finished) return;
-                  if (err2) {
+                  if (hasError(err2)) {
                     finished = true;
                     return callback(err2, null);
                   }
 
                   distribution.local.comm.send(
-                    [value, key],
+                    [value, withGid(key)],
                     { service: 'mem', method: 'put', node: to },
                     (err3) => {
                       if (finished) return;
-                      if (err3) {
+                      if (hasError(err3)) {
                         finished = true;
                         return callback(err3, null);
                       }

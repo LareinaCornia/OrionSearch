@@ -138,11 +138,43 @@ test('(15 pts) add support for distributed persistence', (done) => {
 });
 
 test('(5 pts) add support for optional in-memory operation', (done) => {
-    done(new Error('Not implemented'));
+    const mapper = (k, v) => v.split(/\s+/).map((word) => ({[word]: 1}));
+    const reducer = (k, vals) => ({[k]: vals.reduce((a, b) => a + b, 0)});
+
+    distribution.icgp.store.put('abc xyz abc', 'km1', () => {
+        distribution.icgp.mr.exec(
+            {keys: ['km1'], map: mapper, reduce: reducer, mode: true},
+            (e, v) => {
+                try {
+                    expect(e).toBeFalsy();
+                    expect(v).toEqual(expect.arrayContaining([{abc: 2}, {xyz: 1}]));
+                    done();
+                } catch (error) {
+                    done(error);
+                }
+            },
+        );
+    });
 });
 
 test('(15 pts) add support for iterative map-reduce', (done) => {
-    done(new Error('Not implemented'));
+    const mapper = (k, v) => [{ [k]: v + 5 }];
+    const reducer = (k, vals) => ({ [k]: vals.reduce((a, b) => a + b, 0) });
+
+    distribution.local.store.put(1, { gid: "all", key: "ki1" }, () => {
+        distribution.all.mr.exec(
+        { keys: ["ki1"], map: mapper, reduce: reducer, rounds: 2 },
+        (e, v) => {
+            try {
+            expect(e).toBeFalsy();
+            expect(v).toEqual(expect.arrayContaining([{ ki1: 11 }]));
+            done();
+            } catch (error) {
+            done(error);
+            }
+        }
+        );
+    });
 });
 
 function getDatasetKeys(dataset) {

@@ -1,11 +1,32 @@
 // @ts-check
 /**
  * @typedef {import("../types.js").Callback} Callback
+ *
  * @typedef {Object} StoreConfig
+ * @property {?string} key
+ * @property {?string} gid
+ *
  * @typedef {StoreConfig | string | null} SimpleConfig
  */
 
 const map = new Map();
+
+/**
+ * @param {SimpleConfig} configuration
+ */
+function extract(configuration) {
+  let key = configuration != null && typeof configuration === 'object' ? configuration.key : configuration;
+  let gid = configuration != null && typeof configuration === 'object' ? configuration.gid : 'local';
+  return {key, gid};
+}
+
+/**
+ * @param {?string} gid
+ * @param {string} key
+ */
+function namespacedKey(gid, key) {
+  return `${gid}:${key}`;
+}
 
 /**
  * @param {any} state
@@ -13,15 +34,14 @@ const map = new Map();
  * @param {Callback} callback
  */
 function put(state, configuration, callback) {
-  if (configuration != null && typeof configuration != 'string')
-    return callback(new Error('invalid string'), null);
+  let {key, gid} = extract(configuration);
 
-  if (configuration == null) 
-    configuration = globalThis.distribution.util.id.getID(state);
-  
-  map.set(configuration, state);
+  key = key ? key : globalThis.distribution.util.id.getID(state);
+  const storageKey = namespacedKey(gid, key);
+
+  map.set(storageKey, state);
   return callback(null, state);
-};
+}
 
 /**
  * @param {any} state
@@ -29,27 +49,50 @@ function put(state, configuration, callback) {
  * @param {Callback} callback
  */
 function append(state, configuration, callback) {
-  return callback(new Error('mem.append not implemented'));
-};
+  const {key, gid} = extract(configuration);
+  if (key == null)
+    return callback(new Error('invalid key'), null);
+
+  const storageKey = namespacedKey(gid, key);
+  let values = [];
+  if (map.has(storageKey)) {
+    values = map.get(storageKey);
+  }
+
+  if (!Array.isArray(values)) {
+    values = [values];
+  }
+
+  values.push(...(Array.isArray(state) ? state : [state]));
+  map.set(storageKey, values);
+  callback(null, values);
+}
 
 /**
  * @param {SimpleConfig} configuration
  * @param {Callback} callback
  */
 function get(configuration, callback) {
-  let key;
-  if (typeof configuration === 'string' || configuration === null)
-    key = configuration;
-  else if (typeof configuration === 'object' && configuration.key)
-    key = configuration.key;
+  const {key, gid} = extract(configuration);
 
-  if (key === null)
-    return callback(null, Array.from(map.keys()));
-  
-  if (!map.has(key))
+  if (key === null) {
+    const prefix = `${gid}:`;
+    const keys = [];
+
+    map.forEach((_, entryKey) => {
+      if (entryKey.startsWith(prefix)) {
+        keys.push(entryKey.slice(prefix.length));
+      }
+    });
+
+    return callback(null, keys);
+  }
+
+  const storageKey = namespacedKey(gid, key);
+  if (!map.has(storageKey))
     return callback(new Error('key not found'), null);
 
-  return callback(null, map.get(key));
+  return callback(null, map.get(storageKey));
 }
 
 /**
@@ -57,15 +100,17 @@ function get(configuration, callback) {
  * @param {Callback} callback
  */
 function del(configuration, callback) {
-  if (typeof configuration !== 'string')
-      return callback(new Error('invalid key'), null);
+  const {key, gid} = extract(configuration);
+  if (key == null)
+    return callback(new Error('invalid key'), null);
 
-    if (!map.has(configuration))
-      return callback(new Error('key not found'), null);
+  const storageKey = namespacedKey(gid, key);
+  if (!map.has(storageKey))
+    return callback(new Error('key not found'), null);
 
-    const value = map.get(configuration);
-    map.delete(configuration);
-    return callback(null, value);
-};
+  const value = map.get(storageKey);
+  map.delete(storageKey);
+  return callback(null, value);
+}
 
 module.exports = {put, get, del, append};
