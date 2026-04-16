@@ -29,6 +29,8 @@
  * @property {Reducer} [compact]
  * @property {boolean} [mode]
  * @property {number} [rounds]
+ * @property {string} [input]
+ * @property {string} [output]
  *
  * @typedef {Object} Mr
  * @property {(configuration: MRConfig, cb: Callback) => void} exec
@@ -57,6 +59,7 @@ function mr(config) {
    * @param {Callback} callback
    */
   function mapPhase(mrid, mode, callback) {
+    console.log("map phase");
     const storage = mode ? distribution.local.mem : distribution.local.store;
 
     function notify() {
@@ -67,7 +70,12 @@ function mr(config) {
           method: 'notify',
           node: distribution.node.config
         },
-        ( ) => { }
+        (e) => {
+          if (e) {
+            return callback(e, null);
+          }
+          return callback(null, null);
+        }
       );
     };
 
@@ -172,7 +180,12 @@ function mr(config) {
           method: 'notify',
           node: distribution.node.config
         },
-        ( ) => { }
+        (e) => {
+          if (e) {
+            return callback(e, null);
+          }
+          return callback(null, null);
+        }
       );
     };
     
@@ -233,10 +246,12 @@ function mr(config) {
   /**
    * @param {string} mrid
    * @param {boolean} mode
+   * @param {string | undefined} outputGid
    * @param {Callback} callback
    */
-  function reducePhase(mrid, mode, callback) {
+  function reducePhase(mrid, mode, outputGid, callback) {
     const storage = mode ? distribution.local.mem : distribution.local.store;
+    const finalOutputGid = outputGid || `${mrid}Output`;
 
     function notify(res) {
       return distribution.local.comm.send(
@@ -246,7 +261,12 @@ function mr(config) {
           method: 'notify',
           node: distribution.node.config
         },
-        (e, _) => { if (e)  return callback(e, null);}
+        (e) => {
+          if (e) {
+            return callback(e, null);
+          }
+          return callback(null, res);
+        }
       );
     }
 
@@ -277,14 +297,14 @@ function mr(config) {
               // distributed persistence implementation
               const [k, v] = Object.entries(res)[0];
               if (mode)
-                distribution[`${mrid}Output`].mem.put(v, k, (e, _) => {
+                distribution[finalOutputGid].mem.put(v, k, (e, _) => {
                   results.push(res);
                   pending--;
                   if (pending === 0) 
                     return notify(results);
                 });
               else 
-                distribution[`${mrid}Output`].store.put(v, k, (e, _) => {
+                distribution[finalOutputGid].store.put(v, k, (e, _) => {
                   results.push(res);
                   pending--;
                   if (pending === 0) 
@@ -308,9 +328,16 @@ function mr(config) {
     const rounds = configuration.rounds || 1;
 
     if (rounds > 1) {
+      const outputGid = configuration.output ||
+        `mr-${gid}-${distribution.util.id.getID({
+          ...configuration,
+          rounds,
+          output: undefined,
+        })}-round-${rounds}`;
       const current = {
         ...configuration,
         rounds: 1,
+        output: outputGid,
       };
 
       return exec(current, (e, values) => {
@@ -322,12 +349,11 @@ function mr(config) {
 
         let pending = values.length;
         const nextKeys = [];
-
         values.forEach((obj) => {
           const [key, value] = Object.entries(obj)[0];
           nextKeys.push(key);
 
-          distribution[gid].store.put(value, key, (putErr) => {
+          distribution[outputGid].store.put(value, key, (putErr) => {
             if (putErr) return cb(putErr, null);
 
             pending--;
@@ -335,6 +361,7 @@ function mr(config) {
               return exec({
                 ...configuration,
                 keys: nextKeys,
+                input: outputGid,
                 rounds: rounds - 1,
               }, cb);
             }
@@ -345,6 +372,7 @@ function mr(config) {
 
     const mrid = `mr-${gid}-${distribution.util.id.getID(configuration)}`;
     const mode = configuration.mode;
+    const outputGid = configuration.output || `${mrid}Output`;
 
     distribution.local.groups.get(gid, (e, group) => {
       if (e) return cb(e);
@@ -370,8 +398,11 @@ function mr(config) {
 
           pending = n;
           results = [];
+          const args = phases[idx] === 'reducePhase' ?
+            [mrid, mode, outputGid] :
+            [mrid, mode];
           globalThis.distribution[mrid].comm.send(
-            [ mrid, mode, () => {} ],
+            args,
             {
               service: mrid,
               method: phases[idx],
@@ -387,62 +418,69 @@ function mr(config) {
       
       function setup(callback) {
         let pending = configuration.keys.length;
+        const inputGid = configuration.input || gid;
+
+        if (pending === 0) {
+          return callback(null, null);
+        }
 
         distribution.local.groups.put(mrid, group, () => {
           distribution[gid].groups.put(mrid, group, () => {
 
-            const outputDir = `${mrid}Output`;
+            const outputDir = outputGid;
             distribution.local.groups.put(outputDir, group, () => {
               distribution[gid].groups.put(outputDir, group, () => {
+                if (pending === 0) {
+                  return callback(null, null);
+                }
 
-              });
-            });
+                // data migration
+                configuration.keys.forEach(key => {
+                  distribution[inputGid].store.get(key, (_, value) => {
+                    const storage = mode ? distribution[mrid].mem : distribution[mrid].store;
+                    storage.put(value, key, () => {
+                      pending--;
+                      if (pending == 0) {
 
-            // data migration
-            configuration.keys.forEach(key => {
-              distribution[gid].store.get(key, (_, value) => {
-                const storage = mode ? distribution[mrid].mem : distribution[mrid].store;
-                storage.put(value, key, () => {
-                  pending--;
-                  if (pending == 0) {
+                        // function registration
+                        const map = new Function(
+                          'key', 'value', 'cb', `
+                          const fn = ${configuration.map.toString()};
+                          const res = fn(key, value);
+                          cb(null, res);
+                        `);
+                        const reduce = new Function(
+                          'key', 'values', 'cb', `
+                          const fn = ${configuration.reduce.toString()};
+                          const res = fn(key, values);
+                          cb(null, res);
+                        `);
 
-                    // function registration
-                    const map = new Function(
-                      'key', 'value', 'cb', `
-                      const fn = ${configuration.map.toString()};
-                      const res = fn(key, value);
-                      cb(null, res);
-                    `);
-                    const reduce = new Function(
-                      'key', 'values', 'cb', `
-                      const fn = ${configuration.reduce.toString()};
-                      const res = fn(key, values);
-                      cb(null, res);
-                    `);
+                        const workerService = {
+                          'map': map,
+                          'reduce': reduce,
+                          'notify': notifyRPC,
+                          'mapPhase': mapPhase,
+                          'shufflePhase': shufflePhase,
+                          'reducePhase': reducePhase
+                        };
+                    
+                        if (configuration.compact) {
+                          const compact = new Function(
+                            'key', 'values', 'cb', `
+                            const fn = ${configuration.compact.toString()};
+                            const res = fn(key, values);
+                            cb(null, res);
+                          `);
+                          workerService['compact'] = compact;
+                        }
 
-                    const workerService = {
-                      'map': map,
-                      'reduce': reduce,
-                      'notify': notifyRPC,
-                      'mapPhase': mapPhase,
-                      'shufflePhase': shufflePhase,
-                      'reducePhase': reducePhase
-                    };
-                
-                    if (configuration.compact) {
-                      const compact = new Function(
-                        'key', 'values', 'cb', `
-                        const fn = ${configuration.compact.toString()};
-                        const res = fn(key, values);
-                        cb(null, res);
-                      `);
-                      workerService['compact'] = compact;
-                    }
-
-                    distribution.local.routes.put(notify, 'notify', () => {
-                      distribution[mrid].routes.put(workerService, mrid, () => { callback(null, null); });
+                        distribution.local.routes.put(notify, 'notify', () => {
+                          distribution[mrid].routes.put(workerService, mrid, () => { callback(null, null); });
+                        });
+                      }
                     });
-                  }
+                  });
                 });
               });
             });
@@ -463,8 +501,11 @@ function mr(config) {
       }
 
       setup(() => {
+        const args = phases[0] === 'reducePhase' ?
+          [mrid, mode, outputGid] :
+          [mrid, mode];
         distribution[mrid].comm.send(
-          [ mrid, mode, () => {}],
+          args,
           {
             service: mrid,
             method: phases[0],
