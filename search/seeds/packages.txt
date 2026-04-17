@@ -1,317 +1,317 @@
 # Default seeds: package names (https://www.npmjs.com/package/<name>).
 # For 100k+ targets, run locally: node npm-crawl/scripts/fetch-seeds.js --pages 400 --text react --out search/seeds/more.txt
-lodash
-express
-react
-vue
-angular
-typescript
-webpack
-eslint
-prettier
-jest
-mocha
-axios
-moment
-dayjs
-uuid
-semver
-commander
-yargs
-chalk
-debug
-glob
-rimraf
-mkdirp
-rxjs
-redux
-next
-nuxt
-svelte
-ember-cli
-gulp
-grunt
-browserify
-rollup
-parcel
-vite
-esbuild
-swc
-babel-core
-ts-node
-nodemon
-pm2
-forever
-socket.io
-ws
-koa
-fastify
-hapi
-restify
-passport
-jsonwebtoken
-bcrypt
-argon2
-helmet
-cors
-compression
-body-parser
-multer
-sharp
-jimp
-canvas
-pdfkit
-exceljs
-csv-parse
-xml2js
-cheerio
-jsdom
-playwright
-puppeteer
-selenium-webdriver
-cypress
-nightwatch
-tailwindcss
-bootstrap
-jquery
-d3
-three
-chart.js
-echarts
-underscore
-ramda
-immutable
-mobx
-zustand
-recoil
-apollo-client
-graphql
-urql
-relay-runtime
-prisma
-sequelize
-typeorm
-knex
-objection
-mongoose
-mongodb
-ioredis
-redis
-pg
-mysql2
-sqlite3
-better-sqlite3
-tedious
-oracledb
-aws-sdk
-@aws-sdk/client-s3
-firebase-admin
-@google-cloud/storage
-stripe
-twilio
-sendgrid
-nodemailer
-handlebars
-ejs
-pug
-mustache
-nunjucks
-react-dom
-react-router-dom
-@reduxjs/toolkit
-@tanstack/react-query
-@emotion/react
-styled-components
-framer-motion
-react-hook-form
-formik
-yup
-zod
-class-validator
-class-transformer
-rxjs
-nest-commander
-@nestjs/common
-@nestjs/core
-@nestjs/platform-express
-type-graphql
-apollo-server-express
-graphql-subscriptions
-dataloader
-bull
-bee-queue
-agenda
-node-cron
-later
-winston
-pino
-bunyan
-log4js
-@types/node
-@types/express
-@types/lodash
-@types/react
+lodash # Lodash modular utilities.
+express # Fast, unopinionated, minimalist web framework
+react # React is a JavaScript library for building user interfaces.
+vue # The progressive JavaScript framework for building modern web UI.
+angular # HTML enhanced for web apps
+typescript # TypeScript is a language for application scale JavaScript development
+webpack # Packs ECMAScript/CommonJs/AMD modules for the browser. Allows you to split your codebase into multiple bundles, which can be loaded on demand. Supports loaders to preprocess files, i.e. json, jsx, es7, css, less, ... and your custom stuff.
+eslint # An AST-based pattern checker for JavaScript.
+prettier # Prettier is an opinionated code formatter
+jest # Delightful JavaScript Testing.
+mocha # simple, flexible, fun test framework
+axios # Promise based HTTP client for the browser and node.js
+moment # Parse, validate, manipulate, and display dates
+dayjs # 2KB immutable date time library alternative to Moment.js with the same modern API
+uuid # RFC9562 UUIDs
+semver # The semantic version parser used by npm.
+commander # the complete solution for node.js command-line programs
+yargs # yargs the modern, pirate-themed, successor to optimist.
+chalk # Terminal string styling done right
+debug # Lightweight debugging utility for Node.js and the browser
+glob # the most correct and second fastest glob implementation in JavaScript
+rimraf # A deep deletion module for node (like `rm -rf`)
+mkdirp # Recursively mkdir, like `mkdir -p`
+rxjs # Reactive Extensions for modern JavaScript
+redux # Predictable state container for JavaScript apps
+next # The React Framework
+nuxt # Nuxt is a free and open-source framework with an intuitive and extendable way to create type-safe, performant and production-grade full-stack web applications and websites with Vue.js.
+svelte # Cybernetically enhanced web apps
+ember-cli # Command line tool for developing ambitious ember.js apps
+gulp # The streaming build system.
+grunt # The JavaScript Task Runner
+browserify # browser-side require() the node way
+rollup # Next-generation ES module bundler
+parcel # Blazing fast, zero configuration web application bundler
+vite # Native-ESM powered web dev build tool
+esbuild # An extremely fast JavaScript and CSS bundler and minifier.
+swc # Alias for @swc/cli
+babel-core # Babel compiler core.
+ts-node # TypeScript execution environment and REPL for node.js, with source map support
+nodemon # Simple monitor script for use during development of a Node.js app.
+pm2 # Production process manager for Node.JS applications with a built-in load balancer.
+forever # A simple CLI tool for ensuring that a given node script runs continuously (i.e. forever)
+socket.io # node.js realtime framework server
+ws # Simple to use, blazing fast and thoroughly tested websocket client and server for Node.js
+koa # Koa web app framework
+fastify # Fast and low overhead web framework, for Node.js
+hapi # HTTP Server framework
+restify # REST framework
+passport # Simple, unobtrusive authentication for Node.js.
+jsonwebtoken # JSON Web Token implementation (symmetric and asymmetric)
+bcrypt # A bcrypt library for NodeJS.
+argon2 # An Argon2 library for Node
+helmet # help secure Express/Connect apps with various HTTP headers
+cors # Node.js CORS middleware
+compression # Node.js compression middleware
+body-parser # Node.js body parsing middleware
+multer # Middleware for handling `multipart/form-data`.
+sharp # High performance Node.js image processing, the fastest module to resize JPEG, PNG, WebP, GIF, AVIF and TIFF images
+jimp # An image processing library written entirely in JavaScript.
+canvas # Canvas graphics API backed by Cairo
+pdfkit # A PDF generation library for Node.js
+exceljs # Excel Workbook Manager - Read and Write xlsx and csv Files.
+csv-parse # CSV parsing implementing the Node.js `stream.Transform` API
+xml2js # Simple XML to JavaScript object converter.
+cheerio # The fast, flexible & elegant library for parsing and manipulating HTML and XML.
+jsdom # A JavaScript implementation of many web standards
+playwright # A high-level API to automate web browsers
+puppeteer # A high-level API to control headless Chrome over the DevTools Protocol
+selenium-webdriver # The official WebDriver JavaScript bindings from the Selenium project
+cypress # Cypress is a next generation front end testing tool built for the modern web
+nightwatch # Easy to use Node.js based end-to-end testing solution for web applications using the W3C WebDriver API.
+tailwindcss # A utility-first CSS framework for rapidly building custom user interfaces.
+bootstrap # The most popular front-end framework for developing responsive, mobile first projects on the web.
+jquery # JavaScript library for DOM operations
+d3 # Data-Driven Documents
+three # JavaScript 3D library
+chart.js # Simple HTML5 charts using the canvas element.
+echarts # Apache ECharts is a powerful, interactive charting and data visualization library for browser
+underscore # JavaScript's functional programming helper library.
+ramda # A practical functional library for JavaScript programmers.
+immutable # Immutable Data Collections
+mobx # Simple, scalable state management.
+zustand # Bear necessities for state management in React
+recoil # Recoil - A state management library for React
+apollo-client # A simple yet functional GraphQL client.
+graphql # A Query Language and Runtime which can target any service.
+urql # A highly customizable and versatile GraphQL client for React
+relay-runtime # A core runtime for building GraphQL-driven applications.
+prisma # Prisma is an open-source database toolkit. It includes a JavaScript/TypeScript ORM for Node.js, migrations and a modern GUI to view and edit the data in your database. You can use Prisma in new projects or add it to an existing one.
+sequelize # Sequelize is a promise-based Node.js ORM tool for Postgres, MySQL, MariaDB, SQLite, Microsoft SQL Server, Amazon Redshift and Snowflake’s Data Cloud. It features solid transaction support, relations, eager and lazy loading, read replication and more.
+typeorm # Data-Mapper ORM for TypeScript and ES2021+. Supports MySQL/MariaDB, PostgreSQL, MS SQL Server, Oracle, SAP HANA, SQLite, MongoDB databases.
+knex # A batteries-included SQL query & schema builder for PostgresSQL, MySQL, CockroachDB, MSSQL and SQLite3
+objection # An SQL-friendly ORM for Node.js
+mongoose # Mongoose MongoDB ODM
+mongodb # The official MongoDB driver for Node.js
+ioredis # A robust, performance-focused and full-featured Redis client for Node.js.
+redis # A modern, high performance Redis client
+pg # PostgreSQL client - pure javascript & libpq with the same API
+mysql2 # fast mysql driver. Implements core protocol, prepared statements, ssl and compression in native JS
+sqlite3 # Asynchronous, non-blocking SQLite3 bindings
+better-sqlite3 # The fastest and simplest library for SQLite in Node.js.
+tedious # A TDS driver, for connecting to MS SQLServer databases.
+oracledb # A Node.js module for Oracle Database access from JavaScript and TypeScript
+aws-sdk # AWS SDK for JavaScript
+@aws-sdk/client-s3 # AWS SDK for JavaScript S3 Client for Node.js, Browser and React Native
+firebase-admin # Firebase admin SDK for Node.js
+@google-cloud/storage # Cloud Storage Client Library for Node.js
+stripe # Stripe API wrapper
+twilio # A Twilio helper library
+sendgrid # Official SendGrid NodeJS library.
+nodemailer # Easy as cake e-mail sending from your Node.js applications
+handlebars # Handlebars provides the power necessary to let you build semantic templates effectively with no frustration
+ejs # Embedded JavaScript templates
+pug # A clean, whitespace-sensitive template language for writing HTML
+mustache # Logic-less {{mustache}} templates with JavaScript
+nunjucks # A powerful templating engine with inheritance, asynchronous control, and more (jinja2 inspired)
+react-dom # React package for working with the DOM.
+react-router-dom # Declarative routing for React web applications
+@reduxjs/toolkit # The official, opinionated, batteries-included toolset for efficient Redux development
+@tanstack/react-query # Hooks for managing, caching and syncing asynchronous and remote data in React
+@emotion/react # > Simple styling in React.
+styled-components # Fast, expressive styling for React.
+framer-motion # A simple and powerful JavaScript animation library
+react-hook-form # Performant, flexible and extensible forms library for React Hooks
+formik # Build forms in React, without the tears
+yup # Dead simple Object schema validation
+zod # TypeScript-first schema declaration and validation library with static type inference
+class-validator # Decorator-based property validation for classes.
+class-transformer # Proper decorator-based transformation / serialization / deserialization of plain javascript objects to class constructors
+rxjs # Reactive Extensions for modern JavaScript
+nest-commander # A module for making CLI applications with NestJS. Decorators for running commands and separating out config parsers included. This package works on top of commander.
+@nestjs/common # Nest - modern, fast, powerful node.js web framework (@common)
+@nestjs/core # Nest - modern, fast, powerful node.js web framework (@core)
+@nestjs/platform-express # Nest - modern, fast, powerful node.js web framework (@platform-express)
+type-graphql # Create GraphQL schema and resolvers with TypeScript, using classes and decorators!
+apollo-server-express # Production-ready Node.js GraphQL server for Express
+graphql-subscriptions # GraphQL subscriptions for node.js
+dataloader # A data loading utility to reduce requests to a backend via batching and caching.
+bull # Job manager
+bee-queue # A simple, fast, robust job/task queue, backed by Redis.
+agenda # Light weight job scheduler for Node.js
+node-cron # A Lightweight Task Scheduler for Node.js
+later # Determine later (or previous) occurrences of recurring schedules
+winston # A logger for just about everything.
+pino # super fast, all natural json logger
+bunyan # a JSON logging library for node.js services
+log4js # Port of Log4js to work with node.
+@types/node # TypeScript definitions for node
+@types/express # TypeScript definitions for express
+@types/lodash # TypeScript definitions for lodash
+@types/react # TypeScript definitions for react
 typescript-eslint/parser
 typescript-eslint/eslint-plugin
-eslint-plugin-react
-eslint-plugin-import
-eslint-plugin-n
-prettier-plugin-organize-imports
-husky
-lint-staged
-commitizen
-standard-version
-lerna
-nx
-turbo
-changesets
-pnpm
-yarn
-core-js
-regenerator-runtime
-@babel/preset-env
-@babel/preset-react
-@babel/preset-typescript
-terser
-uglify-js
-source-map
-source-map-support
-dotenv
-cross-env
-env-cmd
-config
-convict
-nconf
-yaml
-toml
-ini
-big.js
-decimal.js
-bignumber.js
-fraction.js
-numeric
-ml-matrix
-simple-statistics
-distributions
-seedrandom
-chance
-faker
-@faker-js/faker
-json-schema
-ajv
-joi
-superstruct
-runtypes
-io-ts
-fp-ts
-monet
-sanctuary
-ramda-adjunct
-rxjs-spy
-effect
-@effect/schema
-fast-check
-ava
-tap
-tape
-uvu
-vitest
-@testing-library/react
-@testing-library/jest-dom
-enzyme
-sinon
-nock
-msw
-supertest
-light-my-request
-http-proxy-middleware
-node-fetch
-got
-ky
-axios-retry
-bottleneck
-p-queue
-p-retry
-async
-neo-async
-bluebird
-q
-when
-deferred
-eventemitter3
-mitt
-rxjs
-threads
-workerpool
-tinypool
-piscina
-cluster-service
-sticky-session
-@socket.io/redis-adapter
-engine.io
+eslint-plugin-react # React specific linting rules for ESLint
+eslint-plugin-import # Import with sanity.
+eslint-plugin-n # Additional ESLint's rules for Node.js
+prettier-plugin-organize-imports # Make prettier organize your imports using the TypeScript language service API.
+husky # Modern native Git hooks
+lint-staged # Lint files staged by git
+commitizen # Git commit, but play nice with conventions.
+standard-version # replacement for `npm version` with automatic CHANGELOG generation
+lerna # Lerna is a fast, modern build system for managing and publishing multiple JavaScript/TypeScript packages from the same repository
+nx # The core Nx plugin contains the core functionality of Nx like the project graph, nx commands and task orchestration.
+turbo # Turborepo is a high-performance build system for JavaScript and TypeScript codebases.
+changesets # Changeset library incorporating an operational transformation (OT) algorithm - for node and the browser, with shareJS support
+pnpm # Fast, disk space efficient package manager
+yarn # 📦🐈 Fast, reliable, and secure dependency management.
+core-js # Standard library
+regenerator-runtime # Runtime for Regenerator-compiled generator and async functions.
+@babel/preset-env # A Babel preset for each environment.
+@babel/preset-react # Babel preset for all React plugins.
+@babel/preset-typescript # Babel preset for TypeScript.
+terser # JavaScript parser, mangler/compressor and beautifier toolkit for ES6+
+uglify-js # JavaScript parser, mangler/compressor and beautifier toolkit
+source-map # Generates and consumes source maps
+source-map-support # Fixes stack traces for files with source maps
+dotenv # Loads environment variables from .env file
+cross-env # Run scripts that set and use environment variables across platforms
+env-cmd # Executes a command using the environment variables in an env file
+config # Configuration control for production node deployments
+convict # Featureful configuration management library for Node.js (nested structure, schema validation, etc.)
+nconf # Hierarchical node.js configuration with files, environment variables, command-line arguments, and atomic object merging.
+yaml # JavaScript parser and stringifier for YAML
+toml # TOML parser for Node.js (TOML v1.1.0 compliant)
+ini # An ini encoder/decoder for node
+big.js # A small, fast, easy-to-use library for arbitrary-precision decimal arithmetic
+decimal.js # An arbitrary-precision Decimal type for JavaScript.
+bignumber.js # A library for arbitrary-precision decimal and non-decimal arithmetic
+fraction.js # The RAW rational numbers library
+numeric # Numerical analysis in javascript
+ml-matrix # Matrix manipulation and computation library
+simple-statistics # Simple Statistics
+distributions # A collection of probability distribution functions
+seedrandom # Seeded random number generator for Javascript.
+chance # Chance - Utility library to generate anything random
+faker # Generate massive amounts of fake contextual data
+@faker-js/faker # Generate massive amounts of fake contextual data
+json-schema # JSON Schema validation and specifications
+ajv # Another JSON Schema Validator
+joi # Object schema validation
+superstruct # A simple and composable way to validate data in JavaScript (and TypeScript).
+runtypes # Runtime validation for static types
+io-ts # TypeScript runtime type system for IO decoding/encoding
+fp-ts # Functional programming in TypeScript
+monet # Monadic types library for JavaScript
+sanctuary # Refuge from unsafe JavaScript
+ramda-adjunct # Ramda Adjunct is the most popular and most comprehensive set of utilities for use with Ramda, providing a variety of useful, well tested functions with excellent documentation.
+rxjs-spy # A debugging library for RxJS
+effect # The missing standard library for TypeScript, for writing production-grade software.
+@effect/schema # Modeling the schema of data structures as first-class values
+fast-check # Property based testing framework for JavaScript (like QuickCheck)
+ava # Node.js test runner that lets you develop with confidence.
+tap # A Test-Anything-Protocol library for JavaScript
+tape # tap-producing test harness for node and browsers
+uvu # uvu is an extremely fast and lightweight test runner for Node.js and the browser
+vitest # Next generation testing framework powered by Vite
+@testing-library/react # Simple and complete React DOM testing utilities that encourage good testing practices.
+@testing-library/jest-dom # Custom jest matchers to test the state of the DOM
+enzyme # JavaScript Testing utilities for React
+sinon # JavaScript test spies, stubs and mocks.
+nock # HTTP server mocking and expectations library for Node.js
+msw # Seamless REST/GraphQL API mocking library for browser and Node.js.
+supertest # SuperAgent driven library for testing HTTP servers
+light-my-request # Fake HTTP injection library
+http-proxy-middleware # The one-liner node.js proxy middleware for connect, express, next.js and more
+node-fetch # A light-weight module that brings Fetch API to node.js
+got # Human-friendly and powerful HTTP request library for Node.js
+ky # Tiny and elegant HTTP client based on the Fetch API
+axios-retry # Axios plugin that intercepts failed requests and retries them whenever posible.
+bottleneck # Distributed task scheduler and rate limiter
+p-queue # Promise queue with concurrency control
+p-retry # Retry a promise-returning or async function
+async # Higher-order functions and common patterns for asynchronous code
+neo-async # Neo-Async is a drop-in replacement for Async, it almost fully covers its functionality and runs faster
+bluebird # Full featured Promises/A+ implementation with exceptionally good performance
+q # A library for promises (CommonJS/Promises/A,B,D)
+when # A lightweight Promises/A+ and when() implementation, plus other async goodies.
+deferred # Modular and fast Promises implementation
+eventemitter3 # EventEmitter3 focuses on performance while maintaining a Node.js AND browser compatible interface.
+mitt # Tiny 200b functional Event Emitter / pubsub.
+rxjs # Reactive Extensions for modern JavaScript
+threads # Web workers & worker threads as simple as a function call
+workerpool # Offload tasks to a pool of workers on node.js and in the browser
+tinypool # A minimal and tiny Node.js Worker Thread Pool implementation, a fork of piscina, but with fewer features
+piscina # A fast, efficient Node.js Worker Thread Pool implementation
+cluster-service # Turns your single process code into a fault-resilient multi-process service with built-in REST & CLI support
+sticky-session # Sticky session balancer based on a `cluster` module
+@socket.io/redis-adapter # The Socket.IO Redis adapter, allowing to broadcast events between several Socket.IO servers
+engine.io # The realtime engine behind Socket.IO. Provides the foundation of a bidirectional connection between client and server
 uWebSockets.js
-fast-json-stringify
-sonic-boom
-flatstr
-pino-pretty
-rotating-file-stream
-morgan
-express-rate-limit
-rate-limiter-flexible
-express-slow-down
-csurf
-cookie-parser
-express-session
-connect-redis
-connect-mongo
-passport-local
-passport-jwt
-oauth2orize
-oidc-provider
-keycloak-connect
-jwks-rsa
-openid-client
-node-jose
-pem-jwk
-sshpk
-tweetnacl
-libsodium-wrappers
-argon2
-scrypt
-otplib
-speakeasy
-qrcode
-speakeasy
-node-forge
-elliptic
-secp256k1
-ethereumjs-util
-ethers
-web3
-@solana/web3.js
-bitcoinjs-lib
-bip39
-hdkey
-tiny-secp256k1
-merkle-lib
-ipld
-multiformats
-cids
-varint
-protobufjs
-grpc
-@grpc/grpc-js
-@grpc/proto-loader
-nice-grpc
-ts-proto
-protobufjs-cli
-apache-arrow
-parquetjs
-avsc
-msgpackr
-cbor
-bson
-bencode
-smile
-ion-js
-apache-arrow
+fast-json-stringify # Stringify your JSON at max speed
+sonic-boom # Extremely fast utf8 only stream implementation
+flatstr # Flattens the underlying C structures of a concatenated JavaScript string
+pino-pretty # Prettifier for Pino log lines
+rotating-file-stream # Opens a stream.Writable to a file rotated by interval and/or size. A logrotate alternative.
+morgan # HTTP request logger middleware for node.js
+express-rate-limit # Basic IP rate-limiting middleware for Express. Use to limit repeated requests to public APIs and/or endpoints such as password reset.
+rate-limiter-flexible # Node.js atomic and non-atomic counters, rate limiting tools, protection from DoS and brute-force attacks at scale
+express-slow-down # Basic IP rate-limiting middleware for Express that slows down responses rather than blocking the user.
+csurf # CSRF token middleware
+cookie-parser # Parse HTTP request cookies
+express-session # Simple session middleware for Express
+connect-redis # Redis session store for Connect
+connect-mongo # MongoDB session store for Express and Connect
+passport-local # Local username and password authentication strategy for Passport.
+passport-jwt # Passport authentication strategy using JSON Web Tokens
+oauth2orize # OAuth 2.0 authorization server toolkit for Node.js.
+oidc-provider # OAuth 2.0 Authorization Server implementation for Node.js with OpenID Connect
+keycloak-connect # Keycloak Connect Middleware
+jwks-rsa # Library to retrieve RSA public keys from a JWKS endpoint
+openid-client # OAuth 2 / OpenID Connect Client API for JavaScript Runtimes
+node-jose # A JavaScript implementation of the JSON Object Signing and Encryption (JOSE) for current web browsers and node.js-based servers
+pem-jwk # convert between PEM and JWK formats
+sshpk # A library for finding and using SSH public keys
+tweetnacl # Port of TweetNaCl cryptographic library to JavaScript
+libsodium-wrappers # The Sodium cryptographic library compiled to pure JavaScript (wrappers)
+argon2 # An Argon2 library for Node
+scrypt # The scrypt crypto library for NodeJS
+otplib # TypeScript-first library for TOTP and HOTP with multi-runtime and plugin support
+speakeasy # Two-factor authentication for Node.js. One-time passcode generator (HOTP/TOTP) with support for Google Authenticator.
+qrcode # QRCode / 2d Barcode api with both server side and client side support using canvas
+speakeasy # Two-factor authentication for Node.js. One-time passcode generator (HOTP/TOTP) with support for Google Authenticator.
+node-forge # JavaScript implementations of network transports, cryptography, ciphers, PKI, message digests, and various utilities.
+elliptic # EC cryptography
+secp256k1 # This module provides native bindings to ecdsa secp256k1 functions
+ethereumjs-util # A collection of utility functions for Ethereum
+ethers # A complete and compact Ethereum library, for dapps, wallets and any other tools.
+web3 # Ethereum JavaScript API
+@solana/web3.js # Solana Javascript API
+bitcoinjs-lib # Client-side Bitcoin JavaScript library
+bip39 # Bitcoin BIP39: Mnemonic code for generating deterministic keys
+hdkey # Bitcoin BIP32 hierarchical deterministic keys
+tiny-secp256k1 # A tiny secp256k1 JS
+merkle-lib # A performance conscious library for merkle root and tree calculations.
+ipld # The JavaScript Implementation of IPLD
+multiformats # Interface for multihash, multicodec, multibase and CID
+cids # CID Implementation in JavaScript
+varint # protobuf-style varint bytes - use msb to create integer values of varying sizes
+protobufjs # Protocol Buffers for JavaScript (& TypeScript).
+grpc # gRPC Library for Node
+@grpc/grpc-js # gRPC Library for Node - pure JS implementation
+@grpc/proto-loader # gRPC utility library for loading .proto files
+nice-grpc # A Node.js gRPC library that is nice to you
+ts-proto # [![npm](https://img.shields.io/npm/v/ts-proto)](https://www.npmjs.com/package/ts-proto) [![build](https://github.com/stephenh/ts-proto/workflows/Build/badge.svg)](https://github.com/stephenh/ts-proto/actions)
+protobufjs-cli # Translates between file formats and generates static code as well as TypeScript definitions.
+apache-arrow # Apache Arrow columnar in-memory format
+parquetjs # fully asynchronous, pure JavaScript implementation of the Parquet file format
+avsc # Avro for JavaScript
+msgpackr # Ultra-fast MessagePack implementation with extensions for records and structured cloning
+cbor # Encode and parse data in the Concise Binary Object Representation (CBOR) data format (RFC8949).
+bson # A bson parser for node.js and the browser
+bencode # Bencode de/encoder
+smile # Rapid frontend development framework for enterprise web application
+ion-js # A JavaScript implementation of the Ion data interchange format
+apache-arrow # Apache Arrow columnar in-memory format
