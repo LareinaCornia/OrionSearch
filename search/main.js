@@ -12,7 +12,7 @@ const index = require('./indexing/index.js');
 const query = require('./querying/query.js');
 
 // @ts-ignore
-const distribution = require('../distribution.js')();
+const distribution = globalThis.distribution || require('../distribution.js')();
 
 /**
  * @param {any} err
@@ -33,6 +33,7 @@ function hasError(err) {
  * @returns {Record<string, Node>}
  */
 function buildGroup(workers) {
+  /** @type {Record<string, Node>} */
   const group = {};
   workers.forEach((node) => {
     group[distribution.util.id.getSID(node)] = node;
@@ -70,9 +71,12 @@ function pipeline(config) {
     gid: config.gid || 'all',
   };
 
-  const crawler = crawl(config.crawlConfig || {});
-  const indexer = index(config.indexConfig || {});
-  const queryer = query(config.queryConfig || {});
+  const crawlConfig = config.crawlConfig || {};
+  const indexConfig = config.indexConfig || {};
+  const queryConfig = config.queryConfig || {};
+
+  const crawler = crawl(crawlConfig);
+  const queryer = query(queryConfig);
 
   /**
    * @param {Callback} callback
@@ -86,7 +90,7 @@ function pipeline(config) {
     const group = buildGroup(workers);
 
     function ensureSearchGroups(cb) {
-      const gids = ['crawl', 'index', 'query'];
+      const gids = ['crawl', 'index', 'query', 'docs'];
       let i = 0;
 
       function next(err) {
@@ -137,7 +141,7 @@ function pipeline(config) {
         context.initialized = true;
         callback(null, {
           workers,
-          gids: ['crawl', 'index', 'query'],
+          gids: ['crawl', 'index', 'query', 'docs'],
         });
       });
     };
@@ -176,23 +180,35 @@ function pipeline(config) {
     };
 
     crawler.exec((crawlErr, crawlResult) => {
-      if (crawlErr) {
+      if (hasError(crawlErr)) {
         return callback(crawlErr, null);
       }
 
       report.crawl = crawlResult || {
         outputGid: (config.crawlGid || (context.gid === 'crawl' ? 'crawl' : 'docs')),
       };
+      const crawlReport = /** @type {{ outputGid?: string } | null} */ (report.crawl);
 
-      indexer.exec((indexErr, indexResult) => {
-        if (indexErr) {
+      const indexInputGid =
+        (crawlReport && crawlReport.outputGid) ||
+        crawlConfig.outputGid ||
+        crawlConfig.gid ||
+        config.crawlGid ||
+        'docs';
+      const runIndexer = index({
+        ...indexConfig,
+        crawlGid: indexInputGid,
+      });
+
+      runIndexer.exec((indexErr, indexResult) => {
+        if (hasError(indexErr)) {
           return callback(indexErr, null);
         }
 
         report.index = indexResult;
 
         queryer.exec(config.queries || [], (queryErr, queryResult) => {
-          if (queryErr) {
+          if (hasError(queryErr)) {
             return callback(queryErr, null);
           }
           report.query = queryResult;

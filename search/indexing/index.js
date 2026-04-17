@@ -30,11 +30,24 @@ function index(config) {
 
   /**
    * @param {string} url
-   * @param {string} content
+   * @param {unknown} content
    * @returns {Object[]}
    */
   const mapper = (url, content) => {
-    const text = String(content);
+    let text = String(content);
+    let sourceUrl = url;
+
+    if (typeof content === 'string') {
+      try {
+        const parsed = /** @type {{text?: unknown, url?: unknown} | null} */ (JSON.parse(content));
+        if (parsed && typeof parsed === 'object') {
+          if (typeof parsed.text === 'string') text = parsed.text;
+          if (typeof parsed.url === 'string' && parsed.url.length > 0) sourceUrl = parsed.url;
+        }
+      } catch {
+      }
+    }
+
     const normalizedWords = text
       .toLowerCase()
       .replace(/[^a-z]+/g, ' ')
@@ -52,7 +65,7 @@ function index(config) {
 
     return Object.entries(counts).map(([term, tf]) => ({
       [term]: {
-        url,
+        url: sourceUrl,
         tf,
         docLength,
         normalizedTf: tf / docLength,
@@ -97,8 +110,8 @@ function index(config) {
    * @param {Callback} callback
    */
   function exec(callback) {
-    const gid = context.gid;
-    const crawlGid = context.crawlGid;
+    const gid = distribution[context.gid] ? context.gid : 'index';
+    const crawlGid = distribution[context.crawlGid] ? context.crawlGid : 'docs';
 
     distribution[crawlGid].store.get(null, (e, urls) => {
       if (e instanceof Error || (e && Object.keys(e).length > 0)) {
