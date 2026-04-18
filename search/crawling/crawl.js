@@ -5,14 +5,14 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const {normalizeNpmUrl} = require('../../npm-crawl/lib/npm-html.js');
-const {trapReason} = require('../../npm-crawl/lib/traps.js');
-const {urlKid} = require('../../npm-crawl/lib/keys.js');
 const {
+  normalizeNpmUrl,
+  trapReason,
+  urlKid,
   encodePkgPath,
   packageNameFromNpmUrl,
   syntheticHtmlFromLatest,
-} = require('../../npm-crawl/lib/registry.js');
+} = require('./helpers.js');
 
 /**
  * @returns {any}
@@ -106,8 +106,12 @@ async function fetchPackagePage(url, opts) {
 function lineToSeedUrl(line) {
   const t = String(line || '').trim();
   if (!t || t.startsWith('#')) return null;
-  if (t.startsWith('http://') || t.startsWith('https://')) return normalizeNpmUrl(t);
-  const name = t.replace(/^['"]|['"]$/g, '');
+  // Allow optional inline description: "pkg # description text".
+  const m = t.match(/^(.*?)\s+#\s+.+$/);
+  const rawSeed = (m ? m[1] : t).trim();
+  if (!rawSeed) return null;
+  if (rawSeed.startsWith('http://') || rawSeed.startsWith('https://')) return normalizeNpmUrl(rawSeed);
+  const name = rawSeed.replace(/^['"]|['"]$/g, '');
   if (!name) return null;
   return normalizeNpmUrl(`https://www.npmjs.com/package/${name}`);
 }

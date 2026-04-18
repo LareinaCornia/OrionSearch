@@ -1,5 +1,6 @@
 # Default seeds: package names (https://www.npmjs.com/package/<name>).
-# For 100k+ targets, run locally: node npm-crawl/scripts/fetch-seeds.js --pages 400 --text react --out search/seeds/more.txt
+# For 100k+ seeds, append package names locally with:
+# node -e "const fs=require('node:fs');(async()=>{const out='search/seeds/more.txt';for(let p=0;p<400;p++){const from=p*250;const u='https://registry.npmjs.org/-/v1/search?text='+encodeURIComponent('react')+'&size=250&from='+from;const r=await fetch(u,{headers:{'User-Agent':'OrionSearch-seed-fetch/1.0'}});const j=await r.json();const rows=(j&&j.objects)||[];for(const row of rows){const n=row.package&&row.package.name;if(n)fs.appendFileSync(out,n+'\\n');}if(rows.length<250)break;}})();"
 lodash # Lodash modular utilities.
 express # Fast, unopinionated, minimalist web framework
 react # React is a JavaScript library for building user interfaces.
