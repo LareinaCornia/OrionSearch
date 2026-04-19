@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>System Status</title>
+        <link rel="stylesheet" href="/style.css">
+    </head>
+    <script>
+        setTimeout(() => window.location.reload(), 10000);
+    </script>
+    <body>
+        <div class="status-header">
+            <a href="/" class="results-logo">
+                <img alt="Orion Search Logo" src="/logo.png" class="small-logo">
+            </a>
+            <span>System Status</span>
+        </div>
+        <div class="results-body">
+            <table style="border-collapse:collapse;margin-top:16px">
+            <tr style="border-bottom:2px solid #DDD">
+                <th style="padding:8px 16px;text-align:left">Node</th>
+                <th style="padding:8px 16px;text-align:left">Status</th>
+                <th style="padding:8px 16px;text-align:left">Latency</th>
+                <th style="padding:8px 16px;text-align:left">Memory</th>
+                <th style="padding:8px 16px;text-align:left">NID</th>
+                <th style="padding:8px 16px;text-align:left">SID</th>
+            </tr>
+            {{ROWS}}
+            </table>
+            <div style="margin-top:20px;color:#777;font-size:13px">
+            {{COUNT}} nodes active
+            </div>
+        </div>
+    </body>
+</html>

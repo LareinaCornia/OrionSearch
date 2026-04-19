@@ -102,7 +102,11 @@ function index(config) {
 
       return a.url.localeCompare(b.url);
     });
-    return { [term]: rankedPostings };
+    return {
+      [term]: Object.fromEntries(
+        rankedPostings.map(p => [p.url, p.score])
+      )
+    };
   };
 
 

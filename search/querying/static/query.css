@@ -1,0 +1,148 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: arial, sans-serif;
+}
+
+.landing {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+}
+
+.small-logo {
+    width: 50px;
+}
+
+.search-box {
+    width: 500px;
+    padding: 12px 20px;
+    margin-top: 8px;
+    font-size: 16px;
+    border: 1px solid #DDD;
+    border-radius: 24px;
+    outline: none;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+}
+
+.search-box:focus {
+    box-shadow: 0 1px 6px rgba(0,0,0,0.2);
+}
+
+.search-box-sm {
+    width: 500px;
+    padding: 10px 16px;
+    font-size: 16px;
+    border: 1px solid #DDD;
+    border-radius: 24px;
+    outline: none;
+}
+
+.btn-search {
+    padding: 8px 16px;
+    background: #F2F2F2;
+    border: 1px solid #F2F2F2;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+    margin-top: 20px;
+    text-decoration: none;
+}
+
+.btn-search:hover {
+    border-color: #CCC;
+}
+
+.btn-blue {
+    padding: 8px 20px;
+    background: blue;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.btn-blue:hover {
+    background: blue;
+}
+
+.results-header {
+    background: #F2F2F2;
+    padding: 20px 30px;
+    border-bottom: 1px solid #E0E0E0;
+}
+
+.status-header {
+    background: #F2F2F2;
+    padding: 20px 30px;
+    border-bottom: 1px solid #E0E0E0;
+    display: flex;
+    align-items: center;
+}
+
+.status-header span {
+    margin-left: 20px;
+    color:#545454;
+    font-size: 20px;
+}
+
+.results-header form {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.results-logo {
+    font-size: 28px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.results-body {
+    padding: 20px 30px;
+}
+
+.results-count {
+    color: #777;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.result-item {
+    max-width: 600px;
+    margin-bottom: 24px;
+}
+
+.result-title {
+    font-size: 18px;
+    color: blue;
+    text-decoration: none;
+}
+
+.result-title:hover {
+    text-decoration: underline;
+}
+
+.result-url {
+    font-size: 14px;
+    color: green;
+    margin: 2px 0;
+}
+
+.result-score {
+    font-size: 13px;
+    color: #555;
+}
+
+.no-results {
+    color: #555;
+    margin-top: 20px;
+}
