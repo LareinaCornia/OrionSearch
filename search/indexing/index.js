@@ -114,15 +114,29 @@ function index(config) {
    * @param {Callback} callback
    */
   function exec(callback) {
-    const gid = distribution[context.gid] ? context.gid : 'index';
-    const crawlGid = distribution[context.crawlGid] ? context.crawlGid : 'docs';
+    const dist = globalThis.distribution;
 
-    distribution[crawlGid].store.get(null, (e, urls) => {
+    console.log('INDEXER: distribution keys:', Object.keys(globalThis.distribution));
+
+    const gid = dist[context.gid] ? context.gid : 'index';
+    const crawlGid = dist[context.crawlGid] ? context.crawlGid : 'docs';
+
+    console.log('INDEXER: Reading from', crawlGid);
+
+    dist[crawlGid].store.get(null, (e, urls) => {
+
+      console.log('INDEXER: Got', urls ? urls.length : 0, 'keys');
+
       if (e instanceof Error || (e && Object.keys(e).length > 0)) {
+
+        console.log('INDEXER ERROR:', e);
+
         return callback(e, null);
       }
 
-      distribution[gid].mr.exec(
+      console.log('INDEXER: Starting MapReduce on', gid);
+
+      dist[gid].mr.exec(
         {
           keys: urls,
           input: crawlGid,
@@ -131,6 +145,9 @@ function index(config) {
           reduce: reducer,
         },
         (e, v) => {
+
+          console.log('INDEXER: MapReduce complete');
+
           if (e instanceof Error || (e && Object.keys(e).length > 0)) {
             return callback(e, null);
           }

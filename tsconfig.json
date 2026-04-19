@@ -13,7 +13,7 @@
     "distribution/distribution.d.ts",
     "distribution.js",
     "distribution/**/*.js"
-  ],
+, "search/querying/query.js"  ],
   "exclude": [
     "node_modules"
   ]

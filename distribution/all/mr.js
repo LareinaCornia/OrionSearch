@@ -36,8 +36,6 @@
  * @property {(configuration: MRConfig, cb: Callback) => void} exec
  */
 
-const distribution = globalThis.distribution;
-
 /*
   Note: The only method explicitly exposed in the `mr` service is `exec`.
   Other methods, such as `map`, `shuffle`, and `reduce`, should be dynamically
@@ -59,16 +57,17 @@ function mr(config) {
    * @param {Callback} callback
    */
   function mapPhase(mrid, mode, callback) {
-    console.log("map phase");
-    const storage = mode ? distribution.local.mem : distribution.local.store;
+    console.log('MAP PHASE started for', mrid);
+    const storage = mode ? globalThis.distribution.local.mem : globalThis.distribution.local.store;
 
     function notify() {
-      return distribution.local.comm.send(
+      console.log('MAP PHASE: notifying coordinator');
+      return globalThis.distribution.local.comm.send(
         [[]],
         {
           service: mrid,
           method: 'notify',
-          node: distribution.node.config
+          node: globalThis.distribution.node.config
         },
         (e) => {
           if (e) {
@@ -91,12 +90,12 @@ function mr(config) {
         storage.get({ gid: mrid, key }, (e, value) => {
           if (e)  return callback(e, null);
 
-          distribution.local.comm.send(
+          globalThis.distribution.local.comm.send(
             [ key, value],
             {
               service: mrid,
               method: 'map',
-              node: distribution.node.config
+              node: globalThis.distribution.node.config
             },
             (e, rs) => {
               if (e) return callback(e, null);
@@ -113,7 +112,7 @@ function mr(config) {
               pending--;
               if (pending == 0) {
                 // compaction
-                distribution.local.routes.get({ service: mrid }, (e, service) => {
+                globalThis.distribution.local.routes.get({ service: mrid }, (e, service) => {
                   if (!e && service['compact']) {
                     const grouped = {};
                     results.forEach((item) => {
@@ -169,16 +168,17 @@ function mr(config) {
    * @param {Callback} callback
    */
   function shufflePhase(mrid, mode, callback) {
-    const storage = mode ? distribution.local.mem : distribution.local.store;
-    const distributedStorage = mode ? distribution[mrid].mem : distribution[mrid].store;
+    const storage = mode ? globalThis.distribution.local.mem : globalThis.distribution.local.store;
+    const distributedStorage = mode ? globalThis.distribution[mrid].mem : globalThis.distribution[mrid].store;
 
     function notify() {
-      return distribution.local.comm.send(
+      console.log('SHUFFLE PHASE: notifying coordinator');
+      return globalThis.distribution.local.comm.send(
         [[]],
         {
           service: mrid,
           method: 'notify',
-          node: distribution.node.config
+          node: globalThis.distribution.node.config
         },
         (e) => {
           if (e) {
@@ -250,16 +250,17 @@ function mr(config) {
    * @param {Callback} callback
    */
   function reducePhase(mrid, mode, outputGid, callback) {
-    const storage = mode ? distribution.local.mem : distribution.local.store;
+    const storage = mode ? globalThis.distribution.local.mem : globalThis.distribution.local.store;
     const finalOutputGid = outputGid || `${mrid}Output`;
 
     function notify(res) {
-      return distribution.local.comm.send(
+      console.log('REDUCE PHASE: notifying coordinator');
+      return globalThis.distribution.local.comm.send(
         [res],
         {
           service: mrid,
           method: 'notify',
-          node: distribution.node.config
+          node: globalThis.distribution.node.config
         },
         (e) => {
           if (e) {
@@ -284,12 +285,12 @@ function mr(config) {
           { gid: mrid, key},
           (e, values) => {
             if (e) return callback(e, null);
-            distribution.local.comm.send(
+            globalThis.distribution.local.comm.send(
             [ key, values ], 
             {
               service: mrid,
               method: 'reduce',
-              node: distribution.node.config
+              node: globalThis.distribution.node.config
             },
             (e, res) => {
               if (e) return callback(e, null);
@@ -297,14 +298,14 @@ function mr(config) {
               // distributed persistence implementation
               const [k, v] = Object.entries(res)[0];
               if (mode)
-                distribution[finalOutputGid].mem.put(v, k, (e, _) => {
+                globalThis.distribution[finalOutputGid].mem.put(v, k, (e, _) => {
                   results.push(res);
                   pending--;
                   if (pending === 0) 
                     return notify(results);
                 });
               else 
-                distribution[finalOutputGid].store.put(v, k, (e, _) => {
+                globalThis.distribution[finalOutputGid].store.put(v, k, (e, _) => {
                   results.push(res);
                   pending--;
                   if (pending === 0) 
@@ -324,12 +325,14 @@ function mr(config) {
    * @returns {void}
    */
   function exec(configuration, cb) {
+    console.log('MR.EXEC called on', context.gid, 'with', configuration.keys?.length || 0, 'keys');
+
     const gid = context.gid;
     const rounds = configuration.rounds || 1;
 
     if (rounds > 1) {
       const outputGid = configuration.output ||
-        `mr-${gid}-${distribution.util.id.getID({
+        `mr-${gid}-${globalThis.distribution.util.id.getID({
           ...configuration,
           rounds,
           output: undefined,
@@ -353,7 +356,7 @@ function mr(config) {
           const [key, value] = Object.entries(obj)[0];
           nextKeys.push(key);
 
-          distribution[outputGid].store.put(value, key, (putErr) => {
+          globalThis.distribution[outputGid].store.put(value, key, (putErr) => {
             if (putErr) return cb(putErr, null);
 
             pending--;
@@ -370,11 +373,11 @@ function mr(config) {
       });
     }
 
-    const mrid = `mr-${gid}-${distribution.util.id.getID(configuration)}`;
+    const mrid = `mr-${gid}-${globalThis.distribution.util.id.getID(configuration)}`;
     const mode = configuration.mode;
     const outputGid = configuration.output || `${mrid}Output`;
 
-    distribution.local.groups.get(gid, (e, group) => {
+    globalThis.distribution.local.groups.get(gid, (e, group) => {
       if (e) return cb(e);
       
       const phases = ['mapPhase', 'shufflePhase', 'reducePhase'];
@@ -384,6 +387,7 @@ function mr(config) {
       let pending = n;
       let results = [];
       function notify(rs, callback) {
+        console.log('COORDINATOR notify received, pending:', pending - 1);
         rs.forEach(r => {results.push(r);});
         
         pending--;
@@ -417,6 +421,9 @@ function mr(config) {
       const notifyRPC = globalThis.distribution.util.wire.createRPC(notify);   
       
       function setup(callback) {
+        console.log('SETUP: starting data migration for', configuration.keys.length, 'keys');
+        console.log('SETUP: inputGid =', configuration.input || gid);
+  console.log('SETUP: globalThis.distribution[inputGid] exists?', !!globalThis.distribution[configuration.input || gid]);
         let pending = configuration.keys.length;
         const inputGid = configuration.input || gid;
 
@@ -424,24 +431,25 @@ function mr(config) {
           return callback(null, null);
         }
 
-        distribution.local.groups.put(mrid, group, () => {
-          distribution[gid].groups.put(mrid, group, () => {
+        globalThis.distribution.local.groups.put(mrid, group, () => {
+          globalThis.distribution[gid].groups.put(mrid, group, () => {
 
             const outputDir = outputGid;
-            distribution.local.groups.put(outputDir, group, () => {
-              distribution[gid].groups.put(outputDir, group, () => {
+            globalThis.distribution.local.groups.put(outputDir, group, () => {
+              globalThis.distribution[gid].groups.put(outputDir, group, () => {
                 if (pending === 0) {
                   return callback(null, null);
                 }
 
                 // data migration
                 configuration.keys.forEach(key => {
-                  distribution[inputGid].store.get(key, (_, value) => {
-                    const storage = mode ? distribution[mrid].mem : distribution[mrid].store;
+                  globalThis.distribution[inputGid].store.get(key, (_, value) => {
+                    const storage = mode ? globalThis.distribution[mrid].mem : globalThis.distribution[mrid].store;
                     storage.put(value, key, () => {
                       pending--;
+                      if (pending % 50 === 0) console.log('SETUP: migrated, pending:', pending);
                       if (pending == 0) {
-
+                        console.log('SETUP: data migration complete, registering routes');
                         // function registration
                         const map = new Function(
                           'key', 'value', 'cb', `
@@ -475,8 +483,8 @@ function mr(config) {
                           workerService['compact'] = compact;
                         }
 
-                        distribution.local.routes.put(notify, 'notify', () => {
-                          distribution[mrid].routes.put(workerService, mrid, () => { callback(null, null); });
+                        globalThis.distribution.local.routes.put(notify, 'notify', () => {
+                          globalThis.distribution[mrid].routes.put(workerService, mrid, () => { callback(null, null); });
                         });
                       }
                     });
@@ -489,10 +497,10 @@ function mr(config) {
       }
 
       function cleanup(callback) {
-        distribution[mrid].routes.rem(mrid, () => {
-          distribution[gid].groups.del(mrid, () => {
-            distribution.local.routes.rem('notify', () => {
-              distribution.local.groups.del(mrid, () => {
+        globalThis.distribution[mrid].routes.rem(mrid, () => {
+          globalThis.distribution[gid].groups.del(mrid, () => {
+            globalThis.distribution.local.routes.rem('notify', () => {
+              globalThis.distribution.local.groups.del(mrid, () => {
                 callback(null, null);
               });
             });
@@ -501,17 +509,20 @@ function mr(config) {
       }
 
       setup(() => {
+        console.log('SETUP complete, sending first phase to workers');
         const args = phases[0] === 'reducePhase' ?
           [mrid, mode, outputGid] :
           [mrid, mode];
-        distribution[mrid].comm.send(
+        globalThis.distribution[mrid].comm.send(
           args,
           {
             service: mrid,
             method: phases[0],
             gid: mrid
           },
-          () => {}
+          () => {
+            console.log('First phase dispatch returned');
+          }
         );
       });
     });
