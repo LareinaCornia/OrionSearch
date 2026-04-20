@@ -5,6 +5,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const readline = require('node:readline');
 const {
   normalizeNpmUrl,
   trapReason,
@@ -116,14 +117,29 @@ function lineToSeedUrl(line) {
   return normalizeNpmUrl(`https://www.npmjs.com/package/${name}`);
 }
 
+const DEFAULT_MAX_PAGES = 200000;
+
 /**
  * @param {string} seedFile
- * @returns {string[]}
+ * @param {{ url: string, depth: number }[]} queue
+ * @returns {Promise<number>} number of seed URLs enqueued
  */
-function readSeedUrls(seedFile) {
-  if (!fs.existsSync(seedFile)) return [];
-  const raw = fs.readFileSync(seedFile, 'utf8');
-  return raw.split(/\n/).map(lineToSeedUrl).filter((u) => typeof u === 'string');
+function enqueueSeedsFromFile(seedFile, queue) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(seedFile)) return resolve(0);
+    let count = 0;
+    const input = fs.createReadStream(seedFile, {encoding: 'utf8'});
+    const rl = readline.createInterface({input, crlfDelay: Infinity});
+    rl.on('line', (line) => {
+      const u = lineToSeedUrl(line);
+      if (u) {
+        queue.push({url: u, depth: 0});
+        count++;
+      }
+    });
+    rl.on('close', () => resolve(count));
+    rl.on('error', reject);
+  });
 }
 
 /**
@@ -138,7 +154,7 @@ function crawl(config) {
   const context = {
     outputGid: config.outputGid || config.gid || 'docs',
     seedFile: config.seedFile || path.join(__dirname, '..', 'seeds', 'packages.txt'),
-    maxPages: Number.isFinite(config.maxPages) ? Number(config.maxPages) : 300,
+    maxPages: Number.isFinite(config.maxPages) ? Number(config.maxPages) : DEFAULT_MAX_PAGES,
     maxDepth: Number.isFinite(config.maxDepth) ? Number(config.maxDepth) : 4,
     maxQueryKeys: Number.isFinite(config.maxQueryKeys) ? Number(config.maxQueryKeys) : 4,
     minChars: Number.isFinite(config.minChars) ? Number(config.minChars) : 120,
@@ -168,24 +184,24 @@ function crawl(config) {
    * @param {Callback} callback
    */
   function exec(callback) {
-    const seeds = readSeedUrls(context.seedFile);
-    if (seeds.length === 0) {
-      return done(callback, {
-        implemented: true,
-        outputGid: context.outputGid,
-        fetchedDocs: 0,
-        queuedSeeds: 0,
-        discoveredLinks: 0,
-      });
-    }
-
     const limits = {maxDepth: context.maxDepth, maxQueryKeys: context.maxQueryKeys};
-    const queue = seeds.map((url) => ({url, depth: 0}));
+    const queue = /** @type {{ url: string, depth: number }[]} */ ([]);
     const seen = new Set();
     let fetchedDocs = 0;
     let discoveredLinks = 0;
 
     (async () => {
+      const seedCount = await enqueueSeedsFromFile(context.seedFile, queue);
+      if (seedCount === 0) {
+        return done(callback, {
+          implemented: true,
+          outputGid: context.outputGid,
+          fetchedDocs: 0,
+          queuedSeeds: 0,
+          discoveredLinks: 0,
+        });
+      }
+
       while (queue.length > 0 && fetchedDocs < context.maxPages) {
         const next = queue.shift();
         if (!next) break;
@@ -216,7 +232,7 @@ function crawl(config) {
         implemented: true,
         outputGid: context.outputGid,
         fetchedDocs,
-        queuedSeeds: seeds.length,
+        queuedSeeds: seedCount,
         discoveredLinks,
       });
     })().catch((err) => callback(err, null));

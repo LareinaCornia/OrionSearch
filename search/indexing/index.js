@@ -102,11 +102,7 @@ function index(config) {
 
       return a.url.localeCompare(b.url);
     });
-    return {
-      [term]: Object.fromEntries(
-        rankedPostings.map(p => [p.url, p.score])
-      )
-    };
+    return { [term]: rankedPostings };
   };
 
 
@@ -116,25 +112,13 @@ function index(config) {
   function exec(callback) {
     const dist = globalThis.distribution;
 
-    console.log('INDEXER: distribution keys:', Object.keys(globalThis.distribution));
-
     const gid = dist[context.gid] ? context.gid : 'index';
     const crawlGid = dist[context.crawlGid] ? context.crawlGid : 'docs';
 
-    console.log('INDEXER: Reading from', crawlGid);
-
     dist[crawlGid].store.get(null, (e, urls) => {
-
-      console.log('INDEXER: Got', urls ? urls.length : 0, 'keys');
-
       if (e instanceof Error || (e && Object.keys(e).length > 0)) {
-
-        console.log('INDEXER ERROR:', e);
-
         return callback(e, null);
       }
-
-      console.log('INDEXER: Starting MapReduce on', gid);
 
       dist[gid].mr.exec(
         {
@@ -145,9 +129,6 @@ function index(config) {
           reduce: reducer,
         },
         (e, v) => {
-
-          console.log('INDEXER: MapReduce complete');
-
           if (e instanceof Error || (e && Object.keys(e).length > 0)) {
             return callback(e, null);
           }
