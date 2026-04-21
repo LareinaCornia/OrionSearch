@@ -45,6 +45,12 @@ function bootstrap(config) {
     distribution.local.routes.put(service, key, () => { });
   }
 
+  try {
+    require('./search/crawling/crawl.js').registerOnDistribution();
+  } catch (e) {
+    log(`Orion crawl MR registration skipped: ${e && e.message}`, 'warn');
+  }
+
   return distribution;
 }
 
