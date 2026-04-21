@@ -5,13 +5,13 @@ const path = require('node:path');
 const p = pipeline({
   workers: [
     { ip: '127.0.0.1', port: 7110 },
-    // { ip: '127.0.0.1', port: 7111 },
-    // { ip: '127.0.0.1', port: 7112 },
+    { ip: '127.0.0.1', port: 7111 },
+    { ip: '127.0.0.1', port: 7112 },
   ],
   gid: 'all',
   crawlConfig: {
-    maxPages: 100,
-    maxDepth: 2,
+    maxPages: 1000,
+    maxDepth: 4,
     seedFile: path.join(__dirname, '.', 'seeds', 'packages-simple.txt')
   },
 });
@@ -28,8 +28,8 @@ p.init((err) => {
   const n2 = { ip: '127.0.0.1', port: 7111 };
   const n3 = { ip: '127.0.0.1', port: 7112 };
   group[distribution.util.id.getSID(n1)] = n1;
-  // group[distribution.util.id.getSID(n2)] = n2;
-  // group[distribution.util.id.getSID(n3)] = n3;
+  group[distribution.util.id.getSID(n2)] = n2;
+  group[distribution.util.id.getSID(n3)] = n3;
 
   distribution.local.groups.put({ gid: 'index' }, group, () => {
     distribution.all.groups.put({ gid: 'index' }, group, () => {

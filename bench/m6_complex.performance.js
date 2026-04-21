@@ -1,106 +1,71 @@
 /**
- * M6 Complex Performance Test
- * * Breaks down the pipeline to measure TRUE concurrent throughput vs latency 
- * across raw storage, indexing, and high-volume querying.
+ * M6 Complex Performance Test (Granular Metrics)
  */
-require('../distribution.js')();
-
 const { performance } = require('node:perf_hooks');
-const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 
+const pipeline = require('../search/main.js');
 const createCrawler = require('../search/crawling/crawl.js');
 const createIndex = require('../search/indexing/index.js');
-const createQuery = require('../search/querying/query.js');
 
-const distribution = globalThis.distribution;
-const id = distribution.util.id;
+const distribution = globalThis.distribution || require('../distribution.js')();
 
 // -------------------- Configurable Constants --------------------
-// TODO: adjust to AWS
 const ENVIRONMENT = 'LOCAL';
-const ITER_RAW = 5000;
-// TODO: adjust as needed if mocking
-const NUM_PAGES = 55;
+const NUM_PAGES = 1000;
 const ITER_QUERIES = 2000;
 
 const LOCAL_NODES = [
   { ip: '127.0.0.1', port: 7110 },
   { ip: '127.0.0.1', port: 7111 },
   { ip: '127.0.0.1', port: 7112 },
-  { ip: '127.0.0.1', port: 7113 },
+  { ip: '127.0.0.1', port: 7113 }
 ];
-
 const AWS_NODES = [
   { ip: '10.0.0.10', port: 7110 },
   { ip: '10.0.0.11', port: 7111 },
-  { ip: '10.0.0.12', port: 7112 },
+  { ip: '10.0.0.12', port: 7112 }
 ];
 
 const WORKERS = ENVIRONMENT === 'AWS' ? AWS_NODES : LOCAL_NODES;
+const seedFile = path.join(__dirname, '..', 'search', 'seeds', 'packages-simple.txt');
 
-function start() {
-  distribution.node.start((e) => {
-    if (e) return console.error(e), process.exit(1);
+const testPipeline = pipeline({
+  workers: WORKERS,
+  gid: 'all',
+  crawlConfig: { seedFile, maxPages: NUM_PAGES, maxDepth: 3, outputGid: 'docs' },
+  indexConfig: { gid: 'index' },
+});
 
-    let pending = WORKERS.length;
-    WORKERS.forEach((node) => {
-      distribution.local.status.spawn(node, (err) => {
-        if (err) console.error('Spawn error:', err);
-        if (--pending === 0) setupGroups();
-      });
-    });
+// -------------------- Execution Logic --------------------
+
+function runPerformanceSuite() {
+  console.log('--- INITIALIZING CLUSTER ---');
+
+  testPipeline.init((err) => {
+    if (err) {
+      console.error('Initialization failed:', err);
+      process.exit(1);
+    }
+    runCrawlerPhase();
   });
 }
 
-function setupGroups() {
-  const group = {};
-  WORKERS.forEach(node => { group[id.getSID(node)] = node; });
-
-  distribution.local.groups.put({ gid: 'docs' }, group, () => {
-    distribution.all.groups.put({ gid: 'docs' }, group, () => {
-      distribution.local.groups.put({ gid: 'index' }, group, () => {
-        distribution.all.groups.put({ gid: 'index' }, group, () => {
-          runStorage();
-        });
-      });
-    });
-  });
-}
-
-// insert data
-function runStorage() {
-  console.log(`Starting storage...`);
-
-  let completed = 0;
-
-  for (let i = 0; i < ITER_RAW; i++) {
-    const doc = { url: `test${i}`, text: "payload data" };
-    distribution.docs.store.put(doc, doc.url, (err) => {
-      completed++;
-      if (completed === ITER_RAW) {
-        runCrawlerPhase();
-      }
-    });
-  }
-}
-
-// crawler
 function runCrawlerPhase() {
-  console.log(`\nStarting Phase 2: Crawler (${NUM_PAGES} seeds)`);
-  const seedFile = path.join(__dirname, '..', 'search', 'seeds', 'packages-simple.txt')
+  console.log(`\nStarting Phase 1: Crawler (${NUM_PAGES} pages)`);
+
   const crawler = createCrawler({
     outputGid: 'docs',
     seedFile: seedFile,
     maxPages: NUM_PAGES,
-    maxDepth: 1,
+    maxDepth: 3,
   });
 
-  const startCrawl = performance.now();
+  const start = performance.now();
   crawler.exec((err, report) => {
-    const totalTimeSec = (performance.now() - startCrawl) / 1000;
-    const docs = report ? report.fetchedDocs : NUM_PAGES;
+    const end = performance.now();
+    const totalTimeSec = (end - start) / 1000;
+    const docs = (report && report.fetchedDocs) ? report.fetchedDocs : NUM_PAGES;
 
     console.log(`[Crawler] Total Time: ${totalTimeSec.toFixed(3)} s`);
     console.log(`[Crawler] Throughput: ${(docs / totalTimeSec).toFixed(2)} pages/sec`);
@@ -109,52 +74,52 @@ function runCrawlerPhase() {
   });
 }
 
-// indexer
 function runIndexPhase() {
-  console.log(`\nStarting Phase 3: Indexer`);
+  console.log(`\nStarting Phase 2: Indexer`);
+
   const indexer = createIndex({
     gid: 'index',
     crawlGid: 'docs',
   });
 
-  const startIndex = performance.now();
+  const start = performance.now();
   indexer.exec((err, report) => {
-    const totalTimeSec = (performance.now() - startIndex) / 1000;
+    const end = performance.now();
+    const totalTimeSec = (end - start) / 1000;
+
     console.log(`[Indexer] Total Time: ${totalTimeSec.toFixed(3)} s`);
-    console.log(`[Indexer] Check index sizes to calculate exact terms/sec throughput`);
+    console.log(`[Indexer] Status: Completed across ${WORKERS.length} nodes`);
 
     runQueryPhase();
   });
 }
 
-// query
 function runQueryPhase() {
-  console.log(`\nStarting Phase 4: Granular Query Concurrency (${ITER_QUERIES} concurrent queries)`);
+  console.log(`\nStarting Phase 3: Query System with (${ITER_QUERIES} queries)`);
 
-  const queryer = createQuery({ gid: 'all', indexGid: 'index' });
-  const searchTerms = ['ai', 'js', 'react', 'distributed', 'systems'];
+  const queryer = require('../search/querying/query.js')({ gid: 'all', indexGid: 'index' });
+  const searchTerms = ['npm', 'js', 'react', 'angular', 'system'];
 
   let completed = 0;
   const latencies = [];
-  const startTotal = performance.now();
+  const startBurst = performance.now();
 
   for (let i = 0; i < ITER_QUERIES; i++) {
     const term = searchTerms[i % searchTerms.length];
-    const startQuery = performance.now();
+    const startReq = performance.now();
 
-    queryer.exec([term], (err, results) => {
-      const endQuery = performance.now();
-      latencies.push(endQuery - startQuery);
+    queryer.exec([term], (err) => {
+      const endReq = performance.now();
+      latencies.push(endReq - startReq);
       completed++;
 
       if (completed === ITER_QUERIES) {
-        const totalTimeSec = (performance.now() - startTotal) / 1000;
-        const avgLatency = latencies.reduce((a, b) => a + b) / ITER_QUERIES;
-        const throughput = ITER_QUERIES / totalTimeSec;
+        const totalBurstTime = (performance.now() - startBurst) / 1000;
+        const avgLat = latencies.reduce((a, b) => a + b, 0) / ITER_QUERIES;
 
-        console.log(`[Query] Total Time: ${totalTimeSec.toFixed(3)} s`);
-        console.log(`[Query] Avg Latency per Request: ${avgLatency.toFixed(3)} ms`);
-        console.log(`[Query] True Throughput: ${throughput.toFixed(2)} queries/sec`);
+        console.log(`[Query] Total Time: ${totalBurstTime.toFixed(3)} s`);
+        console.log(`[Query] Avg Latency: ${avgLat.toFixed(3)} ms`);
+        console.log(`[Query] True Throughput: ${(ITER_QUERIES / totalBurstTime).toFixed(2)} queries/sec`);
 
         shutdown();
       }
@@ -163,27 +128,17 @@ function runQueryPhase() {
 }
 
 function shutdown() {
-  const remote = { service: 'status', method: 'stop' };
-  let pending = WORKERS.length;
-  WORKERS.forEach((node) => {
-    remote.node = node;
-    distribution.local.comm.send([], remote, () => {
-      if (--pending === 0 && globalThis.distribution.node.server) {
-        console.log('\n--- PERFORMANCE TEST COMPLETE ---');
-        globalThis.distribution.node.server.close();
-        process.exit(0);
-      }
-    });
+  console.log('Shutting down workers...');
+  testPipeline.shutdown((err) => {
+    if (err) console.error('Shutdown error:', err);
+    console.log('\n--- PERFORMANCE TEST COMPLETE ---');
+    process.exit(0);
   });
 }
 
-function cleanup() {
-  console.log('\nShutting down workers...');
-  distribution.all.status.stop(() => console.log("Stoped"));
-  setTimeout(() => process.exit(), 2000);
-}
+process.on('SIGINT', () => {
+  console.log('Shutting down...');
+  distribution.all.status.stop(() => process.exit());
+});
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
-
-start();
+runPerformanceSuite();
