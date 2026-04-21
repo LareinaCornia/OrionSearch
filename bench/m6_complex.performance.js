@@ -22,13 +22,14 @@ const id = distribution.util.id;
 const ENVIRONMENT = 'LOCAL';
 const ITER_RAW = 5000;
 // TODO: adjust as needed if mocking
-const NUM_PAGES = 500;
+const NUM_PAGES = 55;
 const ITER_QUERIES = 2000;
 
 const LOCAL_NODES = [
   { ip: '127.0.0.1', port: 7110 },
   { ip: '127.0.0.1', port: 7111 },
   { ip: '127.0.0.1', port: 7112 },
+  { ip: '127.0.0.1', port: 7113 },
 ];
 
 const AWS_NODES = [
@@ -38,26 +39,6 @@ const AWS_NODES = [
 ];
 
 const WORKERS = ENVIRONMENT === 'AWS' ? AWS_NODES : LOCAL_NODES;
-
-// Setup mock fetch for the crawler phase
-global.fetch = async (url) => {
-  const terms = ['ai', 'js', 'react', 'distributed', 'systems', 'latency', 'throughput'];
-  const text = Array.from({ length: 20 }, () => terms[Math.floor(Math.random() * terms.length)]).join(' ');
-  return {
-    ok: true, status: 200, url: String(url),
-    text: async () => `<html><body>${text}</body></html>`,
-  };
-};
-
-function writeSeedFile() {
-  const p = path.join(os.tmpdir(), `perf-seed-${Date.now()}.txt`);
-
-  // TODO: change to full pipeline
-  const seeds = fs.readFileSync('../search/seeds/packages-simple.txt', 'utf8').split('\n').slice(0, 5000);
-
-  fs.writeFileSync(p, `${seeds.join('\n')}\n`, 'utf8');
-  return p;
-}
 
 function start() {
   distribution.node.start((e) => {
@@ -81,7 +62,7 @@ function setupGroups() {
     distribution.all.groups.put({ gid: 'docs' }, group, () => {
       distribution.local.groups.put({ gid: 'index' }, group, () => {
         distribution.all.groups.put({ gid: 'index' }, group, () => {
-          runRawStorageBaseline();
+          runStorage();
         });
       });
     });
@@ -89,7 +70,7 @@ function setupGroups() {
 }
 
 // insert data
-function runRawStorageBaseline() {
+function runStorage() {
   console.log(`Starting storage...`);
 
   let completed = 0;
@@ -108,7 +89,7 @@ function runRawStorageBaseline() {
 // crawler
 function runCrawlerPhase() {
   console.log(`\nStarting Phase 2: Crawler (${NUM_PAGES} seeds)`);
-  const seedFile = writeSeedFile();
+  const seedFile = path.join(__dirname, '..', 'search', 'seeds', 'packages-simple.txt')
   const crawler = createCrawler({
     outputGid: 'docs',
     seedFile: seedFile,
@@ -124,7 +105,6 @@ function runCrawlerPhase() {
     console.log(`[Crawler] Total Time: ${totalTimeSec.toFixed(3)} s`);
     console.log(`[Crawler] Throughput: ${(docs / totalTimeSec).toFixed(2)} pages/sec`);
 
-    if (fs.existsSync(seedFile)) fs.unlinkSync(seedFile);
     runIndexPhase();
   });
 }
@@ -196,5 +176,14 @@ function shutdown() {
     });
   });
 }
+
+function cleanup() {
+  console.log('\nShutting down workers...');
+  distribution.all.status.stop(() => console.log("Stoped"));
+  setTimeout(() => process.exit(), 2000);
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
 
 start();
