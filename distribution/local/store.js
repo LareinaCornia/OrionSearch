@@ -132,4 +132,18 @@ function append(state, configuration, callback) {
   callback(null, values);
 }
 
-module.exports = {put, get, del, append};
+function appendBatch(batch, configuration, callback) {
+    const gid = configuration.gid || 'all';
+    const keys = Object.keys(batch);
+    let pending = keys.length;
+    if (pending === 0) return callback(null, null);
+    
+    keys.forEach((key) => {
+        append(batch[key], { gid, key }, () => {
+            pending--;
+            if (pending === 0) return callback(null, null);
+        });
+    });
+}
+
+module.exports = {put, get, del, append, appendBatch};

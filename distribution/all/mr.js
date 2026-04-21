@@ -223,39 +223,45 @@ function mr(config) {
               });
 
               const entries = Object.entries(grouped);
-              console.log('SHUFFLE: appending', entries.length, 'groups to distributed store');
-              pending = entries.length;
-              if (pending == 0) return notify();
+              console.log('SHUFFLE: grouping', entries.length, 'terms by destination');
 
-              const BATCH_SIZE = 20;
-              let idx = 0;
-              let errored = false;
+              if (entries.length === 0) return notify();
 
-              function processBatch() {
-                  if (errored) return;
-                  const batch = entries.slice(idx, idx + BATCH_SIZE);
-                  if (batch.length === 0) return;
-                  idx += BATCH_SIZE;
-
-                  let batchDone = 0;
-                  batch.forEach(([key, values]) => {
-                      distributedStorage.append(
-                          values,
-                          { gid: mrid, key: key },
-                          (e, _) => {
-                              if (e && !errored) {
-                                  console.log('SHUFFLE append error:', e.message);
-                              }
+              globalThis.distribution.local.groups.get(mrid, (e, groupNodes) => {
+                  if (e) return callback(e);
+                  
+                  const nodes = Object.values(groupNodes);
+                  const nids = nodes.map(n => globalThis.distribution.util.id.getNID(n));
+                  
+                  const perNode = {};
+                  nodes.forEach(n => { perNode[globalThis.distribution.util.id.getNID(n)] = {}; });
+                  
+                  entries.forEach(([key, values]) => {
+                    const kidHash = globalThis.distribution.util.id.getID(String(key));
+                    const targetNid = globalThis.distribution.util.id.naiveHash(kidHash, nids);
+                    if (!Array.isArray(perNode[targetNid][key])) perNode[targetNid][key] = [];
+                    const vals = Array.isArray(values) ? values : [values];
+                    perNode[targetNid][key] = perNode[targetNid][key].concat(vals);
+                  });
+                  
+                  const destinations = Object.keys(perNode).filter(nid => Object.keys(perNode[nid]).length > 0);
+                  pending = destinations.length;
+                  if (pending === 0) return notify();
+                  
+                  destinations.forEach((targetNid) => {
+                      const targetNode = nodes.find(n => globalThis.distribution.util.id.getNID(n) === targetNid);
+                      const batch = perNode[targetNid];
+                      
+                      globalThis.distribution.local.comm.send(
+                          [batch, { gid: mrid }],
+                          { service: 'store', method: 'appendBatch', node: targetNode },
+                          (e) => {
                               pending--;
-                              batchDone++;
-                              if (pending == 0) return notify();
-                              if (batchDone === batch.length) processBatch();
+                              if (pending === 0) return notify();
                           }
                       );
                   });
-              }
-
-              processBatch();
+              });
             });
           }
         });
@@ -300,42 +306,54 @@ function mr(config) {
         return notify([]);
 
       const results = [];
-      keys.forEach((key) => {
-        storage.get(
-          { gid: mrid, key },
-          (e, values) => {
-            if (e) return callback(e, null);
-            globalThis.distribution.local.comm.send(
-              [key, values],
-              {
-                service: mrid,
-                method: 'reduce',
-                node: globalThis.distribution.node.config
-              },
-              (e, res) => {
-                if (e) return callback(e, null);
+      storage.get({ gid: mrid, key: null }, (e, keys) => {
+        if (e) return callback(e, null);
+        keys = keys.filter(k => k !== 'intermediate');
+        if (keys.length == 0) return notify([]);
 
-                // distributed persistence implementation
-                const [k, v] = Object.entries(res)[0];
-                if (mode)
-                  globalThis.distribution[finalOutputGid].mem.put(v, k, (e, _) => {
-                    results.push(res);
-                    pending--;
-                    if (pending === 0)
-                      return notify(results);
-                  });
-                else
-                  globalThis.distribution[finalOutputGid].store.put(v, k, (e, _) => {
-                    results.push(res);
-                    pending--;
-                    if (pending === 0)
-                      return notify(results);
-                  });
-              }
-            );
-          }
-        );
-      });
+        const results = [];
+        let idx = 0;
+        const BATCH_SIZE = 20;
+
+        function processBatch() {
+            const batch = keys.slice(idx, idx + BATCH_SIZE);
+            if (batch.length === 0) return notify(results);
+            idx += BATCH_SIZE;
+
+            let batchDone = 0;
+            batch.forEach((key) => {
+                storage.get({ gid: mrid, key }, (e, values) => {
+                    if (e) {
+                        batchDone++;
+                        if (batchDone === batch.length) processBatch();
+                        return;
+                    }
+                    globalThis.distribution.local.comm.send(
+                        [key, values],
+                        { service: mrid, method: 'reduce', node: globalThis.distribution.node.config },
+                        (e, res) => {
+                            if (e || !res) {
+                                batchDone++;
+                                if (batchDone === batch.length) processBatch();
+                                return;
+                            }
+                            const [k, v] = Object.entries(res)[0];
+                            const storeObj = mode
+                                ? globalThis.distribution[finalOutputGid].mem
+                                : globalThis.distribution[finalOutputGid].store;
+                            storeObj.put(v, k, () => {
+                                results.push(res);
+                                batchDone++;
+                                if (batchDone === batch.length) processBatch();
+                            });
+                        }
+                    );
+                });
+            });
+        }
+
+        processBatch();
+    });
     });
   }
 
