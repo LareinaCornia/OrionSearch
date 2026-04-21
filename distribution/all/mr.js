@@ -78,20 +78,20 @@ function mr(config) {
       );
     };
 
-    storage.get({ gid: mrid , key: null}, (e, keys) => {
-      if (e)  return callback(e, null);
+    storage.get({ gid: mrid, key: null }, (e, keys) => {
+      if (e) return callback(e, null);
 
       let results = [];
       let pending = keys.length;
-      if (pending == 0) 
+      if (pending == 0)
         return notify();
 
       keys.forEach((key) => {
         storage.get({ gid: mrid, key }, (e, value) => {
-          if (e)  return callback(e, null);
+          if (e) return callback(e, null);
 
           globalThis.distribution.local.comm.send(
-            [ key, value],
+            [key, value],
             {
               service: mrid,
               method: 'map',
@@ -114,9 +114,9 @@ function mr(config) {
                 // compaction
                 globalThis.distribution.local.routes.get({ service: mrid }, (e, service) => {
                   if (!e && service['compact']) {
-                    const grouped = {};
+                    const grouped = Object.create(null);
                     results.forEach((item) => {
-                      if (!grouped[item.key]) 
+                      if (!grouped[item.key])
                         grouped[item.key] = [];
                       grouped[item.key].push(item.value);
                     });
@@ -125,7 +125,7 @@ function mr(config) {
                     const entries = Object.entries(grouped);
                     pending = entries.length;
                     entries.forEach(([key, values]) => {
-                      service['compact'](key, values, (_, result) => { 
+                      service['compact'](key, values, (_, result) => {
                         Object.entries(result).forEach(([k, v]) => {
                           results.push({ key: k, value: v });
                         });
@@ -133,7 +133,7 @@ function mr(config) {
                         if (pending == 0) {
                           storage.put(
                             results,
-                            { gid: mrid, key: 'intermediate'},
+                            { gid: mrid, key: 'intermediate' },
                             (e, _) => {
                               if (e) return callback(e, null);
                               return notify();
@@ -146,7 +146,7 @@ function mr(config) {
                   else {
                     storage.put(
                       results,
-                      { gid: mrid, key: 'intermediate'},
+                      { gid: mrid, key: 'intermediate' },
                       (e, _) => {
                         if (e) return callback(e, null);
                         return notify();
@@ -188,29 +188,29 @@ function mr(config) {
         }
       );
     };
-    
-    storage.get({ gid: mrid, key: null}, (e, keys) => {
+
+    storage.get({ gid: mrid, key: null }, (e, keys) => {
       if (e) return callback(e, null);
 
       keys = keys.filter(k => k !== 'intermediate');
       let pending = keys.length;
-      if (pending == 0) 
+      if (pending == 0)
         return notify();
 
       keys.forEach((key) => {
         storage.del({ gid: mrid, key }, (e, _) => {
           if (e) return callback(e, null);
-          
+
           pending--;
           if (pending === 0) {
-            storage.get({ gid: mrid, key: 'intermediate'}, (e, list) => {
+            storage.get({ gid: mrid, key: 'intermediate' }, (e, list) => {
               if (e) return callback(e, null);
 
               pending = list.length;
               if (pending == 0)
                 return notify();
 
-              const grouped = {};
+              const grouped = Object.create(null);
               list.forEach((item) => {
                 const k = item.key;
                 const v = item.value;
@@ -221,7 +221,7 @@ function mr(config) {
 
               const entries = Object.entries(grouped);
               pending = entries.length;
-              if (pending == 0) 
+              if (pending == 0)
                 return notify();
 
               entries.forEach(([key, values]) => {
@@ -242,7 +242,7 @@ function mr(config) {
       });
     });
   }
-  
+
   /**
    * @param {string} mrid
    * @param {boolean} mode
@@ -271,7 +271,7 @@ function mr(config) {
       );
     }
 
-    storage.get({ gid: mrid, key: null}, (e, keys) => {
+    storage.get({ gid: mrid, key: null }, (e, keys) => {
       if (e) return callback(e, null);
 
       keys = keys.filter(k => k !== 'intermediate');
@@ -282,37 +282,37 @@ function mr(config) {
       const results = [];
       keys.forEach((key) => {
         storage.get(
-          { gid: mrid, key},
+          { gid: mrid, key },
           (e, values) => {
             if (e) return callback(e, null);
             globalThis.distribution.local.comm.send(
-            [ key, values ], 
-            {
-              service: mrid,
-              method: 'reduce',
-              node: globalThis.distribution.node.config
-            },
-            (e, res) => {
-              if (e) return callback(e, null);
+              [key, values],
+              {
+                service: mrid,
+                method: 'reduce',
+                node: globalThis.distribution.node.config
+              },
+              (e, res) => {
+                if (e) return callback(e, null);
 
-              // distributed persistence implementation
-              const [k, v] = Object.entries(res)[0];
-              if (mode)
-                globalThis.distribution[finalOutputGid].mem.put(v, k, (e, _) => {
-                  results.push(res);
-                  pending--;
-                  if (pending === 0) 
-                    return notify(results);
-                });
-              else 
-                globalThis.distribution[finalOutputGid].store.put(v, k, (e, _) => {
-                  results.push(res);
-                  pending--;
-                  if (pending === 0) 
-                    return notify(results);
-                });
-            }
-          );
+                // distributed persistence implementation
+                const [k, v] = Object.entries(res)[0];
+                if (mode)
+                  globalThis.distribution[finalOutputGid].mem.put(v, k, (e, _) => {
+                    results.push(res);
+                    pending--;
+                    if (pending === 0)
+                      return notify(results);
+                  });
+                else
+                  globalThis.distribution[finalOutputGid].store.put(v, k, (e, _) => {
+                    results.push(res);
+                    pending--;
+                    if (pending === 0)
+                      return notify(results);
+                  });
+              }
+            );
           }
         );
       });
@@ -379,17 +379,17 @@ function mr(config) {
 
     globalThis.distribution.local.groups.get(gid, (e, group) => {
       if (e) return cb(e);
-      
+
       const phases = ['mapPhase', 'shufflePhase', 'reducePhase'];
       const n = Object.keys(group).length;
-      
+
       let idx = 0;
       let pending = n;
       let results = [];
       function notify(rs, callback) {
         console.log('COORDINATOR notify received, pending:', pending - 1);
-        rs.forEach(r => {results.push(r);});
-        
+        rs.forEach(r => { results.push(r); });
+
         pending--;
         if (pending === 0) {
           ++idx;
@@ -412,18 +412,18 @@ function mr(config) {
               method: phases[idx],
               gid: mrid
             },
-            () => {}
+            () => { }
           );
         }
         callback(null, null);
       }
-      
-      const notifyRPC = globalThis.distribution.util.wire.createRPC(notify);   
-      
+
+      const notifyRPC = globalThis.distribution.util.wire.createRPC(notify);
+
       function setup(callback) {
         console.log('SETUP: starting data migration for', configuration.keys.length, 'keys');
         console.log('SETUP: inputGid =', configuration.input || gid);
-  console.log('SETUP: globalThis.distribution[inputGid] exists?', !!globalThis.distribution[configuration.input || gid]);
+        console.log('SETUP: globalThis.distribution[inputGid] exists?', !!globalThis.distribution[configuration.input || gid]);
         let pending = configuration.keys.length;
         const inputGid = configuration.input || gid;
 
@@ -470,7 +470,7 @@ function mr(config) {
                           'shufflePhase': shufflePhase,
                           'reducePhase': reducePhase
                         };
-                    
+
                         if (configuration.compact) {
                           const compact = new Function(
                             'key', 'values', 'cb', `
@@ -525,7 +525,7 @@ function mr(config) {
     });
   }
 
-  return {exec};
+  return { exec };
 }
 
 module.exports = mr;
