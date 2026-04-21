@@ -79,6 +79,17 @@ function pipeline(config) {
   const queryer = query(queryConfig);
 
   /**
+   * @returns {string}
+   */
+  function statusSpawnGid() {
+    const g = context.gid;
+    if (distribution[g] && distribution[g].status) {
+      return g;
+    }
+    return 'all';
+  }
+
+  /**
    * @param {Callback} callback
    */
   function init(callback) {
@@ -116,7 +127,7 @@ function pipeline(config) {
       let pending = workers.length;
       let done = false;
       workers.forEach((node) => {
-        distribution[context.gid].status.spawn(node, (err) => {
+        distribution[statusSpawnGid()].status.spawn(node, (err) => {
           if (done) {
             return;
           }

@@ -454,14 +454,12 @@ function mr(config) {
                         const map = new Function(
                           'key', 'value', 'cb', `
                           const fn = ${configuration.map.toString()};
-                          const res = fn(key, value);
-                          cb(null, res);
+                          Promise.resolve(fn(key, value)).then((res) => cb(null, res)).catch((err) => cb(err));
                         `);
                         const reduce = new Function(
                           'key', 'values', 'cb', `
                           const fn = ${configuration.reduce.toString()};
-                          const res = fn(key, values);
-                          cb(null, res);
+                          Promise.resolve(fn(key, values)).then((res) => cb(null, res)).catch((err) => cb(err));
                         `);
 
                         const workerService = {
@@ -477,8 +475,7 @@ function mr(config) {
                           const compact = new Function(
                             'key', 'values', 'cb', `
                             const fn = ${configuration.compact.toString()};
-                            const res = fn(key, values);
-                            cb(null, res);
+                            Promise.resolve(fn(key, values)).then((res) => cb(null, res)).catch((err) => cb(err));
                           `);
                           workerService['compact'] = compact;
                         }

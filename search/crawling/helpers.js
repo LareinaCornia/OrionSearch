@@ -56,63 +56,8 @@ function trapReason(url, limits, depth) {
   return null;
 }
 
-/**
- * Encode package name
- * @param {string} name
- * @returns {string}
- */
-function encodePkgPath(name) {
-  if (name.startsWith('@')) {
-    const i = name.indexOf('/');
-    if (i === -1) return encodeURIComponent(name);
-    const scope = name.slice(1, i);
-    const rest = name.slice(i + 1);
-    return `@${encodeURIComponent(scope)}%2F${encodeURIComponent(rest)}`;
-  }
-  return encodeURIComponent(name);
-}
-
-/**
- * @param {string} npmPackageUrl
- * @returns {string | null}
- */
-function packageNameFromNpmUrl(npmPackageUrl) {
-  try {
-    const u = new URL(npmPackageUrl);
-    const m = u.pathname.match(/^\/package\/((?:@[^/]+\/)?[^/]+)/);
-    return m ? decodeURIComponent(m[1].replace(/%2F/gi, '/')) : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Build minimal HTML
- * @param {string} pkgName
- * @param {object} manifest
- * @returns {string}
- */
-function syntheticHtmlFromLatest(pkgName, manifest) {
-  const deps = Object.keys((manifest.dependencies) || {});
-  const devDeps = Object.keys((manifest.devDependencies) || {});
-  const links = [...new Set([...deps, ...devDeps])]
-    .filter((n) => n && typeof n === 'string')
-    .slice(0, 200)
-    .map((n) => `<a href="https://www.npmjs.com/package/${n.replace(/"/g, '')}">${n}</a>`)
-    .join('\n');
-  const desc = (manifest.description || '').replace(/</g, ' ');
-  return (
-    `<!doctype html><html><head><title>${pkgName}</title></head><body>` +
-    `<meta name="description" content="${desc.replace(/"/g, '')}">` +
-    `<div id="deps">${links}</div></body></html>`
-  );
-}
-
 module.exports = {
   normalizeNpmUrl,
   trapReason,
   urlKid,
-  encodePkgPath,
-  packageNameFromNpmUrl,
-  syntheticHtmlFromLatest,
 };
