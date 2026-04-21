@@ -13,8 +13,8 @@ distribution.node.start(() => {
   const group = {};
 
   group[distribution.util.id.getSID(n1)] = n1;
-  // group[distribution.util.id.getSID(n2)] = n2;
-  // group[distribution.util.id.getSID(n3)] = n3;
+  group[distribution.util.id.getSID(n2)] = n2;
+  group[distribution.util.id.getSID(n3)] = n3;
 
   distribution.local.groups.put({ gid: 'index' }, group, () => {
     distribution.all.groups.put({ gid: 'index' }, group, () => {
@@ -222,13 +222,16 @@ distribution.node.start(() => {
               : '';
 
             const resultsHtml = results && results.length > 0
-              ? results.map(([id, score]) => `
-                        <div class="result-item">
-                            <a href="#" class="result-title">${id}</a>
-                            <div class="result-url">${id}</div>
-                            <div class="result-score">Relevance score: ${score.toFixed(4)}</div>
-                        </div>`).join('')
-              : '<div class="no-results">No results found.</div>';
+                ? results.map(([id, score]) => {
+                    const name = id.split('/package/')[1] || id;
+                    return `
+                <div class="result-item">
+                    <a href="${id}" target="_blank" class="result-title">${name}</a>
+                    <div class="result-url">${id}</div>
+                    <div class="result-score">Relevance score: ${score.toFixed(4)}</div>
+                </div>`;
+                }).join('')
+                : '<div class="no-results">No results found.</div>';
 
             renderTemplate('results.html', {
               QUERY: url.searchParams.get('q'),
@@ -243,26 +246,27 @@ distribution.node.start(() => {
       });
 
       server.listen(3000, () => {
-        console.log('Running on http://localhost:3000');
+            console.log('Running on http://localhost:3000');
 
-        console.log('Testing: distribution.index exists?', !!distribution.index);
-        console.log('Testing: getting a known term...');
-
-        distribution.index.store.get('angular', (e, v) => {
-          console.log('Got term "angular":', e, v);
+            const nodes = [n1, n2, n3];
+            let done = 0;
+            
+            nodes.forEach((node) => {
+                distribution.local.comm.send(
+                    [{gid: 'index', key: null}],
+                    { service: 'store', method: 'get', node: node },
+                    (err, keys) => {
+                        if (!err && Array.isArray(keys)) {
+                            keys.forEach(k => knownTerms.add(k));
+                        }
+                        done++;
+                        if (done === nodes.length) {
+                            console.log(`Loaded ${knownTerms.size} terms from distributed index`);
+                        }
+                    }
+                );
+            });
         });
-
-
-        distribution.index.store.get(null, (e, keys) => {
-          if (e) {
-            console.error('Failed to load terms:', JSON.stringify(e, null, 2));
-            console.error('Error type:', typeof e, Object.keys(e || {}));
-            return;
-          }
-          if (keys) keys.forEach(k => knownTerms.add(k));
-          console.log(`Loaded ${knownTerms.size} terms from distributed index`);
-        });
-      });
     });
   });
 });

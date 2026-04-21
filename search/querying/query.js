@@ -11,10 +11,11 @@ function query(config) {
 
         terms.forEach((term) => {
             globalThis.distribution[indexGid].store.get(term.toLowerCase(), (error, docs) => {
-                if (!error && docs && typeof docs === 'object') {
-                    Object.keys(docs).forEach((url) => {
-                        const score = typeof docs[url] === 'number' ? docs[url] : 0;
-                        scores[url] = (scores[url] || 0) + score;
+                if (!error && Array.isArray(docs)) {
+                    docs.forEach((entry) => {
+                        if (entry && entry.url && typeof entry.score === 'number') {
+                            scores[entry.url] = (scores[entry.url] || 0) + entry.score;
+                        }
                     });
                 }
                 if (--pending === 0) {

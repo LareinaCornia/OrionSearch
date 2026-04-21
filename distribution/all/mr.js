@@ -131,10 +131,12 @@ function mr(config) {
                         });
                         pending--;
                         if (pending == 0) {
+                          console.log('MAP: writing', results.length, 'results to intermediate');
                           storage.put(
                             results,
                             { gid: mrid, key: 'intermediate' },
                             (e, _) => {
+                              console.log('MAP: intermediate write complete, err:', !!e);
                               if (e) return callback(e, null);
                               return notify();
                             }
@@ -168,6 +170,7 @@ function mr(config) {
    * @param {Callback} callback
    */
   function shufflePhase(mrid, mode, callback) {
+    console.log('SHUFFLE PHASE started for', mrid);
     const storage = mode ? globalThis.distribution.local.mem : globalThis.distribution.local.store;
     const distributedStorage = mode ? globalThis.distribution[mrid].mem : globalThis.distribution[mrid].store;
 
@@ -220,22 +223,39 @@ function mr(config) {
               });
 
               const entries = Object.entries(grouped);
+              console.log('SHUFFLE: appending', entries.length, 'groups to distributed store');
               pending = entries.length;
-              if (pending == 0)
-                return notify();
+              if (pending == 0) return notify();
 
-              entries.forEach(([key, values]) => {
-                distributedStorage.append(
-                  values,
-                  { gid: mrid, key: key },
-                  (e, _) => {
-                    if (e) return callback(e, null);
-                    pending--;
-                    if (pending == 0)
-                      return notify();
-                  }
-                );
-              });
+              const BATCH_SIZE = 20;
+              let idx = 0;
+              let errored = false;
+
+              function processBatch() {
+                  if (errored) return;
+                  const batch = entries.slice(idx, idx + BATCH_SIZE);
+                  if (batch.length === 0) return;
+                  idx += BATCH_SIZE;
+
+                  let batchDone = 0;
+                  batch.forEach(([key, values]) => {
+                      distributedStorage.append(
+                          values,
+                          { gid: mrid, key: key },
+                          (e, _) => {
+                              if (e && !errored) {
+                                  console.log('SHUFFLE append error:', e.message);
+                              }
+                              pending--;
+                              batchDone++;
+                              if (pending == 0) return notify();
+                              if (batchDone === batch.length) processBatch();
+                          }
+                      );
+                  });
+              }
+
+              processBatch();
             });
           }
         });

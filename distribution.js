@@ -3,6 +3,13 @@
  * @typedef {import("./distribution/types.js").Node} Node
  */
 
+process.on('uncaughtException', (err) => {
+  if (err.code === 'ERR_HTTP_HEADERS_SENT') {
+    return;
+  }
+  console.error('Uncaught exception:', err);
+});
+
 const log = require('./distribution/util/log.js');
 
 /**

@@ -49,13 +49,17 @@ function buildGroup(workers) {
 function ensureGroup(gid, group, callback) {
   distribution.local.groups.put({ gid }, group, (localErr) => {
     if (localErr) {
+      console.log(`ensureGroup local error for ${gid}:`, localErr);
       return callback(localErr, null);
     }
+    console.log(`ensureGroup local success for ${gid}`);
 
     distribution.all.groups.put({ gid }, group, (remoteErr) => {
       if (hasError(remoteErr)) {
+        console.log(`ensureGroup remote error for ${gid}:`, remoteErr);
         return callback(remoteErr, null);
       }
+      console.log(`ensureGroup remote success for ${gid}`);
       callback(null, group);
     });
   });
