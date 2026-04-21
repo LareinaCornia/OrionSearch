@@ -16,12 +16,13 @@ const id = distribution.util.id;
 // TODO: change to 'AWS' by chaning to 'AWS_NODES'
 const ENVIRONMENT = 'LOCAL';
 // TODO: adjust as needed if mocking
-const NUM_PAGES = null;
+const NUM_PAGES = 55;
 
 const LOCAL_NODES = [
   { ip: '127.0.0.1', port: 7110 },
   { ip: '127.0.0.1', port: 7111 },
   { ip: '127.0.0.1', port: 7112 },
+  // { ip: '127.0.0.1', port: 7113 },
 ];
 
 // TODO: set these when aws running
@@ -33,18 +34,8 @@ const AWS_NODES = [
 
 const WORKERS = ENVIRONMENT === 'AWS' ? AWS_NODES : LOCAL_NODES;
 
-function writeSeedFile() {
-  const p = path.join(os.tmpdir(), `perf-seed-${Date.now()}.txt`);
-
-
-  // TODO: change to full pipeline
-  const seeds = fs.readFileSync('../search/seeds/packages-simple.txt', 'utf8').split('\n').slice(0, 5000);
-
-  fs.writeFileSync(p, `${seeds.join('\n')}\n`, 'utf8');
-  return p;
-}
-
-const seedFile = writeSeedFile();
+// TODO: change to full pipeline
+const seedFile = path.join(__dirname, '..', 'search', 'seeds', 'packages-simple.txt')
 
 function start() {
   const p = pipeline({
@@ -53,7 +44,7 @@ function start() {
     crawlConfig: {
       seedFile: seedFile,
       maxPages: NUM_PAGES,
-      maxDepth: 1,
+      maxDepth: 2,
     }
   });
 
@@ -71,7 +62,7 @@ function start() {
         distribution.local.groups.put({ gid: 'docs' }, group, () => {
           distribution.all.groups.put({ gid: 'docs' }, group, () => {
 
-            console.log(`Starting simple pipeline on ${WORKERS.length} nodes with ${NUM_PAGES} seeds...`);
+            console.log(`Starting simple pipeline on ${WORKERS.length} nodes with ${NUM_PAGES} max pages...`);
             const startTotal = performance.now();
 
             p.run({ queries: [] }, (err, report) => {
@@ -91,8 +82,7 @@ function start() {
               console.log(`Docs Crawled:  ${docsFetched}`);
               console.log(`Throughput:    ${throughput.toFixed(2)} docs/sec`);
 
-              if (fs.existsSync(seedFile)) fs.unlinkSync(seedFile);
-              process.exit(0);
+              cleanup()
             });
           });
         });
@@ -100,5 +90,13 @@ function start() {
     });
   });
 }
+
+function cleanup() {
+  console.log('\nShutting down workers...');
+  distribution.all.status.stop(() => console.log("Stopped"));
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
 
 start();
