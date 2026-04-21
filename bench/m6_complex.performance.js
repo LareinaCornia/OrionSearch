@@ -75,23 +75,41 @@ function runCrawlerPhase() {
 }
 
 function runIndexPhase() {
-  console.log(`\nStarting Phase 2: Indexer`);
+    console.log(`\nStarting Phase 2: Indexer`);
 
-  const indexer = createIndex({
-    gid: 'index',
-    crawlGid: 'docs',
-  });
+    const n1 = { ip: '127.0.0.1', port: 7110 };
+    const n2 = { ip: '127.0.0.1', port: 7111 };
+    const n3 = { ip: '127.0.0.1', port: 7112 };
+    const n4 = { ip: '127.0.0.1', port: 7113 };
+    const group = {};
+    group[distribution.util.id.getSID(n1)] = n1;
+    group[distribution.util.id.getSID(n2)] = n2;
+    group[distribution.util.id.getSID(n3)] = n3;
+    group[distribution.util.id.getSID(n4)] = n4;
 
-  const start = performance.now();
-  indexer.exec((err, report) => {
-    const end = performance.now();
-    const totalTimeSec = (end - start) / 1000;
+    distribution.local.groups.put({gid: 'docs'}, group, () => {
+        distribution.all.groups.put({gid: 'docs'}, group, () => {
+            distribution.local.groups.put({gid: 'index'}, group, () => {
+                distribution.all.groups.put({gid: 'index'}, group, () => {
+                    const indexer = createIndex({
+                        gid: 'index',
+                        crawlGid: 'docs',
+                    });
 
-    console.log(`[Indexer] Total Time: ${totalTimeSec.toFixed(3)} s`);
-    console.log(`[Indexer] Status: Completed across ${WORKERS.length} nodes`);
+                    const start = performance.now();
+                    indexer.exec((err, report) => {
+                        const end = performance.now();
+                        const totalTimeSec = (end - start) / 1000;
 
-    runQueryPhase();
-  });
+                        console.log(`[Indexer] Total Time: ${totalTimeSec.toFixed(3)} s`);
+                        console.log(`[Indexer] Status: Completed across ${WORKERS.length} nodes`);
+
+                        runQueryPhase();
+                    });
+                });
+            });
+        });
+    });
 }
 
 function runQueryPhase() {

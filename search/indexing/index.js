@@ -111,32 +111,53 @@ function index(config) {
    */
   function exec(callback) {
     const dist = globalThis.distribution;
-
     const gid = dist[context.gid] ? context.gid : 'index';
     const crawlGid = dist[context.crawlGid] ? context.crawlGid : 'docs';
 
-    dist[crawlGid].store.get(null, (e, urls) => {
-      if (e instanceof Error || (e && Object.keys(e).length > 0)) {
-        return callback(e, null);
-      }
+    dist.local.groups.get(crawlGid, (e, group) => {
+        if (e || !group) return callback(new Error('Could not get crawl group'), null);
+        
+        const nodes = Object.values(group);
+        const allKeys = [];
+        let done = 0;
 
-      dist[gid].mr.exec(
-        {
-          keys: urls,
-          input: crawlGid,
-          output: gid,
-          map: mapper,
-          reduce: reducer,
-        },
-        (e, v) => {
-          if (e instanceof Error || (e && Object.keys(e).length > 0)) {
-            return callback(e, null);
-          }
-          return callback(null, v);
-        }
-      );
+        nodes.forEach((node) => {
+            dist.local.comm.send(
+                [{gid: crawlGid, key: null}],
+                { service: 'store', method: 'get', node: node },
+                (err, keys) => {
+                    if (!err && Array.isArray(keys)) {
+                        for (const k of keys) {
+                          allKeys.push(k);
+                        }
+                    }
+                    done++;
+                    if (done === nodes.length) {
+                        if (allKeys.length === 0) {
+                            return callback(null, []);
+                        }
+                        console.log('INDEXER: Got', allKeys.length, 'keys from all nodes');
+                        dist[gid].mr.exec(
+                            {
+                                keys: allKeys,
+                                input: crawlGid,
+                                output: gid,
+                                map: mapper,
+                                reduce: reducer,
+                            },
+                            (e, v) => {
+                                if (e instanceof Error || (e && Object.keys(e).length > 0)) {
+                                    return callback(e, null);
+                                }
+                                return callback(null, v);
+                            }
+                        );
+                    }
+                }
+            );
+        });
     });
-  }
+}
 
   return { exec };
 }
