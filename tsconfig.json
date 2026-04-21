@@ -7,14 +7,14 @@
     "strict": false,
     "skipLibCheck": true,
     "lib": ["es2022"],
-    "target": "es6"
+    "target": "es6",
+    "types": ["node"]
   },
   "include": [
     "distribution/distribution.d.ts",
     "distribution.js",
-    "distribution/**/*.js"
-, "search/querying/query.js"  ],
-  "exclude": [
-    "node_modules"
-  ]
+    "distribution/**/*.js",
+    "search/querying/query.js"
+  ],
+  "exclude": ["node_modules"]
 }

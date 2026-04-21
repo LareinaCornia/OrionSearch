@@ -8,6 +8,7 @@
     "test": "test"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "eslint": "^9.39.2",
     "eslint-config-google": "^0.9.1",
     "eslint-plugin-n": "^16.6.2",
@@ -162,12 +163,20 @@
         "ssd-gb": 58
       },
       "throughput": {
-        "dev": [116.7],
-        "aws": [44.0]
+        "dev": [
+          116.7
+        ],
+        "aws": [
+          44
+        ]
       },
       "latency": {
-        "dev": [389.372],
-        "aws": [140.376]
+        "dev": [
+          389.372
+        ],
+        "aws": [
+          140.376
+        ]
       },
       "dloc": 100
     },
